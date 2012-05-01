@@ -66,9 +66,13 @@
 
                 <script>
                 (function() {
-                    InterMine.load('Widgets', function() { $('#widgets').html($('<span/>', { 'class': 'label label-success', 'text': 'Yes' })); });
-                    InterMine.load('Widgets', 'd3', function() { $('#widgets-d3').html($('<span/>', { 'class': 'label label-success', 'text': 'Yes' })); });
-                    InterMine.load('imjs', function() { $('#imjs').html($('<span/>', { 'class': 'label label-success', 'text': 'Yes' })); });
+                    var success = function() {
+                        return $('<span/>', { 'class': 'label label-success', 'text': 'Yes' });
+                    }
+
+                    InterMine.load('Widgets', function() { $('#widgets').html(success()); });
+                    InterMine.load('Widgets', 'd3', function() { $('#widgets-d3').html(success()); });
+                    InterMine.load('imjs', function() { $('#imjs').html(success()); });
                 })();
                 </script>
 
