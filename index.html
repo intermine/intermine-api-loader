@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>InterMine API Loader</title>
+
+        <!--[if lt IE 9]>
+            <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+        <![endif]-->
+
+        <link href="css/bootstrap.css" rel="stylesheet">
+
+        <script src="js/loader.js"></script>
+        <script src="js/jquery.js"></script>
+    </head>
+
+    <body>
+        <!-- menu -->
+        <div class="navbar">
+            <div class="navbar-inner">
+                <div class="container" style="width: auto;">
+                    <a class="brand" href="#">InterMine API Loader</a>
+                    <ul class="nav pull-right">
+                        <li class="divider-vertical"></li>
+                        <li><a href="https://github.com/radekstepan/intermine-api-loader">Fork me on GitHub</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+
+            <div class="row">
+                <h2>Load InterMine Libraries</h2>
+
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Library</th>
+                            <th>Version</th>
+                            <th>URL</th>
+                            <th>Loaded?</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Widgets</strong></td>
+                            <td>latest branch</td>
+                            <td><a href="https://github.com/radekstepan/intermine-widget-client">https://github.com/radekstepan/intermine-widget-client</a></td>
+                            <td id="widgets"><span class="label">?</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Widgets</strong></td>
+                            <td>d3.js branch</td>
+                            <td><a href="https://github.com/radekstepan/intermine-widget-client/tree/d3">https://github.com/radekstepan/intermine-widget-client/tree/d3</a></td>
+                            <td id="widgets-d3"><span class="label">?</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>imjs</strong></td>
+                            <td>latest branch</td>
+                            <td><a href="https://github.com/alexkalderimis/imjs">https://github.com/alexkalderimis/imjs</a></td>
+                            <td id="imjs"><span class="label">?</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <script>
+                (function() {
+                    InterMine.load('Widgets', function() { $('#widgets').html($('<span/>', { 'class': 'label label-success', 'text': 'Yes' })); });
+                    InterMine.load('Widgets', 'd3', function() { $('#widgets-d3').html($('<span/>', { 'class': 'label label-success', 'text': 'Yes' })); });
+                    InterMine.load('imjs', function() { $('#imjs').html($('<span/>', { 'class': 'label label-success', 'text': 'Yes' })); });
+                })();
+                </script>
+
+            </div>
+            
+        </div>
+    </body>
+</html>
