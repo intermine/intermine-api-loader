@@ -41,3 +41,20 @@ Asking for a specific version of a library to be loaded.
   });
 </script>
 ```
+
+Within a JavaScript library, load resources as asynchronously as possible.
+
+```javascript
+var resources = [
+  {
+    name: "jQuery",
+    path: "http://cdnjs.cloudflare.com/ajax/libs/jquery/1.7.2/jquery.min.js",
+    type: "js",
+    wait: true
+  }
+];
+intermine.load(resources, function() {
+  // ...
+});
+    
+```
