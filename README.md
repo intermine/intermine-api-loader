@@ -11,11 +11,13 @@ InterMine JavaScript API Loader
 In an embedding context, the only dependency would be the jsapi, hosted remotely. We provide a callback and wait for the API to load the Widgets library.
 
 ```html
-<script src="http://intermine.org/jsapi">
-  intermine.load('widgets', function() {
-    var widgets = new intermine.widgets('http://flymine.org/service');
-  });
-</script>
+<script src="http://intermine.org/jsapi"></script>
+```
+
+```javascript
+intermine.load('widgets', function() {
+  var widgets = new intermine.widgets('http://flymine.org/service');
+});
 ```
 
 In a mine context we want to serve resources locally. As we include jquery locally this is recognized by jsapi and no internet connection is required.
@@ -27,19 +29,23 @@ In a mine context we want to serve resources locally. As we include jquery local
 // point to API, requirement for all InterMine client side JavaScript
 <script src="js/intermine.api.js"></script>
 // include Widgets library locally, is immediately available on the `intermine` namespace
-<script src="js/intermine.widgets.js">
-  var widgets = new intermine.widgets('http://flymine.org/service');
-</script>
+<script src="js/intermine.widgets.js"></script>
+```
+
+```javascript
+var widgets = new intermine.widgets('http://flymine.org/service');
 ```
 
 Asking for a specific version of a library to be loaded.
 
 ```html
-<script src="http://intermine.org/jsapi">
-  intermine.load('widgets', '0.9.1', function() {
-    var widgets = new intermine.widgets('http://flymine.org/service');
-  });
-</script>
+<script src="http://intermine.org/jsapi"></script>
+```
+
+```javascript
+intermine.load('widgets', '0.9.1', function() {
+  var widgets = new intermine.widgets('http://flymine.org/service');
+});
 ```
 
 Within a JavaScript library, load resources as asynchronously as possible.
@@ -58,3 +64,7 @@ intermine.load(resources, function() {
 });
     
 ```
+
+## Example:
+
+[metabolicMine Widgets](http://tinkerbin.com/iC8SR4by) on Tinkerbin
