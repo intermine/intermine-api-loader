@@ -24,7 +24,7 @@ task "compile", "compile .coffee to .js", (options) ->
     try
       paths = JSON.stringify yaml.load data
       js = cs.compile fs.readFileSync('loader.coffee', "utf-8"), bare: "on"
-      write 'js/loader.js', "(function() {\n#{js}\nintermine.resources = #{paths};\n}).call(this);"
+      write 'js/intermine.api.js', "(function() {\n#{js}\nintermine.resources = #{paths};\n}).call(this);"
       
       # We are done.
       console.log "#{COLORS.GREEN}Done#{COLORS.DEFAULT}"
