@@ -3,12 +3,12 @@ cs = require 'coffee-script' # take a guess
 
 # ANSI Terminal colors.
 COLORS =
-    BOLD: '\033[0;1m'
-    RED: '\033[0;31m'
-    GREEN: '\033[0;32m'
-    BLUE: '\033[0;34m'
-    YELLOW: '\033[0;33m'
-    DEFAULT: '\033[0m'
+    BOLD:    '\u001b[0;1m'
+    RED:     '\u001b[0;31m'
+    GREEN:   '\u001b[0;32m'
+    BLUE:    '\u001b[0;34m'
+    YELLOW:  '\u001b[0;33m'
+    DEFAULT: '\u001b[0m'
 
 # --------------------------------------------
 
@@ -24,6 +24,6 @@ task "compile", "compile .coffee to .js", (options) ->
 
 # Append to existing file.
 write = (path, text, mode = "w") ->
-    fs.open path, mode, 0666, (e, id) ->
+    fs.open path, mode, 0o0666, (e, id) ->
         if e then throw new Error(e)
         fs.write id, text, null, "utf8"

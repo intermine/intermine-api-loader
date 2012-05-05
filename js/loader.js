@@ -1,11 +1,13 @@
 (function() {
   var CSSLoader, JSLoader, Load, Loader,
-    __hasProp = Object.prototype.hasOwnProperty,
+    __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; },
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
-    __slice = Array.prototype.slice;
+    __slice = [].slice;
 
   Loader = (function() {
+
+    Loader.name = 'Loader';
 
     function Loader() {}
 
@@ -33,12 +35,16 @@
 
     __extends(JSLoader, _super);
 
+    JSLoader.name = 'JSLoader';
+
     function JSLoader(path, callback) {
       var script;
       script = document.createElement("script");
       script.src = path;
       script.type = "text/javascript";
-      if (callback) this.setCallback(script, callback);
+      if (callback) {
+        this.setCallback(script, callback);
+      }
       this.getHead().appendChild(script);
     }
 
@@ -50,13 +56,17 @@
 
     __extends(CSSLoader, _super);
 
+    CSSLoader.name = 'CSSLoader';
+
     function CSSLoader(path, callback) {
       var sheet;
       sheet = document.createElement("link");
       sheet.rel = "stylesheet";
       sheet.type = "text/css";
       sheet.href = path;
-      if (callback) this.setCallback(sheet, callback);
+      if (callback) {
+        this.setCallback(sheet, callback);
+      }
       this.getHead().appendChild(sheet);
     }
 
@@ -66,12 +76,16 @@
 
   Load = (function() {
 
+    Load.name = 'Load';
+
     Load.prototype.wait = false;
 
     function Load(resources, callback) {
       this.callback = callback;
       this.done = __bind(this.done, this);
+
       this.load = __bind(this.load, this);
+
       this.count = resources.length;
       this.load(resources.reverse());
     }
@@ -86,7 +100,9 @@
       } else {
         if (resources.length) {
           resource = resources.pop();
-          if (resource.wait != null) this.wait = true;
+          if (resource.wait != null) {
+            this.wait = true;
+          }
           switch (resource.type) {
             case "js":
               if (resource.name != null) {
@@ -119,7 +135,9 @@
     };
 
     Load.prototype.done = function(resource) {
-      if (resource.wait != null) this.wait = false;
+      if (resource.wait != null) {
+        this.wait = false;
+      }
       return this.count -= 1;
     };
 
@@ -127,7 +145,9 @@
 
   })();
 
-  if (!window['InterMine']) window['InterMine'] = {};
+  if (!window['InterMine']) {
+    window['InterMine'] = {};
+  }
 
   InterMine.namespace = function(namespace, obj) {
     var parent, part, _i, _len, _ref;
