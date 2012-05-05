@@ -90,6 +90,10 @@ intermine.load = (opts...) ->
     (typeof opts[1] is 'function' and version = 'latest') or version = opts[1]
     callback = opts.pop()
 
+    # Internal loader.
+    if library instanceof Array then return new Load library, callback
+
+    # 'Public' loader.
     if intermine.resources[library]?
         if intermine.resources[library][version]?
             new Load [
