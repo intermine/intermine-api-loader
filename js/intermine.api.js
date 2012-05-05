@@ -155,6 +155,9 @@ intermine.load = function() {
   library = opts[0];
   (typeof opts[1] === 'function' && (version = 'latest')) || (version = opts[1]);
   callback = opts.pop();
+  if (library instanceof Array) {
+    return new Load(library, callback);
+  }
   if (intermine.resources[library] != null) {
     if (intermine.resources[library][version] != null) {
       return new Load([
@@ -172,5 +175,5 @@ intermine.load = function() {
   }
 };
 
-intermine.resources = {"widgets":{"latest":"https://raw.github.com/radekstepan/intermine-widget-client/master/js/widgets.js"}};
+intermine.resources = {"widgets":{"latest":"https://raw.github.com/radekstepan/intermine-widget-client/master/js/intermine.widgets.js"}};
 }).call(this);
