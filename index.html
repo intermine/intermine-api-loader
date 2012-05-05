@@ -49,18 +49,6 @@
                             <td><a href="https://github.com/radekstepan/intermine-widget-client">https://github.com/radekstepan/intermine-widget-client</a></td>
                             <td id="widgets"><span class="label">?</span></td>
                         </tr>
-                        <tr>
-                            <td><strong>Widgets</strong></td>
-                            <td>d3.js branch</td>
-                            <td><a href="https://github.com/radekstepan/intermine-widget-client/tree/d3">https://github.com/radekstepan/intermine-widget-client/tree/d3</a></td>
-                            <td id="widgets-d3"><span class="label">?</span></td>
-                        </tr>
-                        <tr>
-                            <td><strong>imjs</strong></td>
-                            <td>latest branch</td>
-                            <td><a href="https://github.com/alexkalderimis/imjs">https://github.com/alexkalderimis/imjs</a></td>
-                            <td id="imjs"><span class="label">?</span></td>
-                        </tr>
                     </tbody>
                 </table>
 
@@ -70,9 +58,7 @@
                         return $('<span/>', { 'class': 'label label-success', 'text': 'Yes' });
                     }
 
-                    InterMine.load('Widgets', function() { $('#widgets').html(success()); });
-                    InterMine.load('Widgets', 'd3', function() { $('#widgets-d3').html(success()); });
-                    InterMine.load('imjs', function() { $('#imjs').html(success()); });
+                    intermine.load('widgets', function() { $('#widgets').html(success()); });
                 })();
                 </script>
 

@@ -83,99 +83,21 @@ class Load
 # --------------------------------------------
 
 
-if not window['InterMine'] then window['InterMine'] = {}
+if not window['intermine'] then window['intermine'] = {}
 
-InterMine.namespace = (namespace, obj) ->
-    parent = window['InterMine']
-    for part in namespace.split '.'
-        parent[part] = parent[part] or {}
-        parent = parent[part]
-    parent
-
-InterMine.load = (opts...) ->
+intermine.load = (opts...) ->
     library = opts[0]
     (typeof opts[1] is 'function' and version = 'latest') or version = opts[1]
     callback = opts.pop()
 
-    if InterMine.resources[library]?
-        if InterMine.resources[library][version]?
-            new Load InterMine.resources[library][version], callback
+    if intermine.resources[library]?
+        if intermine.resources[library][version]?
+            new Load [
+                'name': "intermine.#{library}"
+                'path': intermine.resources[library][version]
+                'type': 'js'
+            ], callback
         else
             console.log "#{library} #{version} is not supported at the moment"
     else
         console.log "#{library} is not supported at the moment"
-
-
-# --------------------------------------------
-
-
-InterMine.resources =
-    'Widgets':
-        'latest': [
-            name:  "jQuery"
-            path:  "http://cdnjs.cloudflare.com/ajax/libs/jquery/1.7.2/jquery.min.js"
-            type:  "js"
-            wait:  true
-        ,
-            name:  "_"
-            path:  "http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.3.3/underscore-min.js"
-            type:  "js"
-            wait:  true
-        ,
-            name:  "Backbone"
-            path:  "http://cdnjs.cloudflare.com/ajax/libs/backbone.js/0.9.2/backbone-min.js"
-            type:  "js"
-            wait:  true
-        ,
-            name:  "google"
-            path:  "https://www.google.com/jsapi"
-            type:  "js"
-        ,
-            path:  "https://raw.github.com/alexkalderimis/imjs/master/src/model.js"
-            type:  "js"
-        ,
-            path:  "https://raw.github.com/alexkalderimis/imjs/master/src/query.js"
-            type:  "js"
-        ,
-            path:  "https://raw.github.com/alexkalderimis/imjs/master/src/service.js"
-            type:  "js"
-        ,
-            path:  "https://raw.github.com/radekstepan/intermine-widget-client/master/js/widgets.js"
-            type:  "js"
-        ]
-        'd3': [
-            name:  "jQuery"
-            path:  "http://cdnjs.cloudflare.com/ajax/libs/jquery/1.7.2/jquery.min.js"
-            type:  "js"
-            wait:  true
-        ,
-            name:  "_"
-            path:  "http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.3.3/underscore-min.js"
-            type:  "js"
-            wait:  true
-        ,
-            name:  "Backbone"
-            path:  "http://cdnjs.cloudflare.com/ajax/libs/backbone.js/0.9.2/backbone-min.js"
-            type:  "js"
-            wait:  true
-        ,
-            name:  "d3"
-            path:  "https://raw.github.com/shutterstock/rickshaw/master/vendor/d3.min.js"
-            type:  "js"
-        ]
-    'imjs':
-        'latest': [
-            name:  "_"
-            path:  "http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.3.3/underscore-min.js"
-            type:  "js"
-            wait:  true
-        ,
-            path:  "https://raw.github.com/alexkalderimis/imjs/master/src/model.js"
-            type:  "js"
-        ,
-            path:  "https://raw.github.com/alexkalderimis/imjs/master/src/query.js"
-            type:  "js"
-        ,
-            path:  "https://raw.github.com/alexkalderimis/imjs/master/src/service.js"
-            type:  "js"
-        ]
