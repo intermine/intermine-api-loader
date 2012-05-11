@@ -1,2 +1,3 @@
 widgets:
-  latest: 'http://radekstepan.github.com/intermine-widget-client/intermine.widgets.js'
+  latest: 'http://radekstepan.github.com/intermine-widget-client/latest/intermine.widgets.js'
+  v1.0.0: 'http://radekstepan.github.com/intermine-widget-client/v1.0.0/intermine.widgets.js'
