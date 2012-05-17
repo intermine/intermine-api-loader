@@ -3,4 +3,5 @@ widgets:
   v1.0.0: 'http://radekstepan.github.com/intermine-widget-client/v1.0.0/intermine.widgets.js'
   v1.1.0: 'http://radekstepan.github.com/intermine-widget-client/v1.1.0/intermine.widgets.js'
   v1.1.7: 'http://radekstepan.github.com/intermine-widget-client/v1.1.7/intermine.widgets.js'
+  v1.1.8: 'http://radekstepan.github.com/intermine-widget-client/v1.1.8/intermine.widgets.js'
   d3:     'http://raw.github.com/radekstepan/intermine-widget-client/d3/js/intermine.widgets.js'
