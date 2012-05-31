@@ -7,4 +7,5 @@ widgets:
   1.1.9:  'http://cdn.intermine.org/js/intermine/widgets/1.1.9/intermine.widgets.js'
   1.1.10: 'http://cdn.intermine.org/js/intermine/widgets/1.1.10/intermine.widgets.js'
   1.2.0:  'http://cdn.intermine.org/js/intermine/widgets/1.2.0/intermine.widgets.js'
+  1.2.1:  'http://cdn.intermine.org/js/intermine/widgets/1.2.1/intermine.widgets.js'
   d3:     'http://cdn.intermine.org/js/intermine/widgets/d3/intermine.widgets.js'
