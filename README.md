@@ -11,7 +11,7 @@ InterMine JavaScript API Loader
 In an embedding context, the only dependency would be the jsapi, hosted remotely. We provide a callback and wait for the API to load the Widgets library.
 
 ```html
-<script src="http://intermine.org/jsapi"></script>
+<script src="http://cdn.intermine.org/api"></script>
 ```
 
 ```javascript
@@ -39,7 +39,7 @@ var widgets = new intermine.widgets('http://flymine.org/service');
 Asking for a specific version of a library to be loaded.
 
 ```html
-<script src="http://intermine.org/jsapi"></script>
+<script src="http://cdn.intermine.org/api"></script>
 ```
 
 ```javascript
