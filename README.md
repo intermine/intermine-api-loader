@@ -67,4 +67,4 @@ intermine.load(resources, function() {
 
 ## Example:
 
-[FlyMine Beta Widgets](http://tinkerbin.com/wq6HkyoX) on Tinkerbin
+[FlyMine Beta Widgets](http://tinkerbin.com/tFnWGT7m) on Tinkerbin
