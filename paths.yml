@@ -11,4 +11,5 @@ widgets:
     1.3.0:  'http://cdn.intermine.org/js/intermine/widgets/1.3.0/intermine.widgets.js'
     1.4.0:  'http://cdn.intermine.org/js/intermine/widgets/1.4.0/intermine.widgets.js'
     1.4.1:  'http://cdn.intermine.org/js/intermine/widgets/1.4.1/intermine.widgets.js'
+    1.4.2:  'http://cdn.intermine.org/js/intermine/widgets/1.4.2/intermine.widgets.js'
     d3:     'http://cdn.intermine.org/js/intermine/widgets/d3/intermine.widgets.js'
