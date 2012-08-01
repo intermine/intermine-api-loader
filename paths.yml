@@ -1,4 +1,4 @@
-widgets:
+list-widgets:
     latest: 'http://cdn.intermine.org/js/intermine/widgets/latest/intermine.widgets.js'
     1.0.0:  'http://cdn.intermine.org/js/intermine/widgets/1.0.0/intermine.widgets.js'
     1.1.0:  'http://cdn.intermine.org/js/intermine/widgets/1.1.0/intermine.widgets.js'
