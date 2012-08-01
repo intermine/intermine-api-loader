@@ -6,11 +6,14 @@ InterMine JavaScript API Loader
 3. Can/will be utilized as a loader of dependencies such as jQuery, underscore etc. whenever needed.
 4. As JavaScript is namespaced, we can determine which of our libraries are already loaded.
 
+## Requirements
+
+![image](https://raw.github.com/radekstepan/intermine-widget-client/report-widgets/widgets.png)
+
+1. Serve as a cache of different widget loaders (report & list) for the different mines we point to on a page.
+2. For dependencies (JS, CSS) determine if we actually need to load them or not.
+
 ## Use
-
-### List Widgets
-
-#### In a mine context
 
 Point to the loader in a CDN.
 
@@ -18,27 +21,18 @@ Point to the loader in a CDN.
 <script src="http://cdn.intermine.org/api"></script>
 ```
 
-Specify that you want to load list widgets for a specific service.
+### List Widgets
 
 ```javascript
-intermine.load('list-widgets', 'http://flymine.org', function(widgets) {
-  // ...
+intermine.load('list-widgets', 'http://flymine.org/service', function(widgets) {
+    // now we can load individual list widgets
 });
 ```
 
-#### In an embedding context
-
-Point to the api and list widgets loader locally.
-
-```html
-// point to API, requirement for all InterMine client side JavaScript
-<script src="js/intermine.api.js"></script>
-// include List Widgets library locally, is immediately available on the `intermine` namespace
-<script src="js/intermine.list-widgets.js"></script>
-```
-
-Now make a connection to a service.
+### Report Widgets
 
 ```javascript
-var widgets = new intermine.widgets('http://flymine.org');
+intermine.load('report-widgets', 'http://flymine.org/service', function(widgets) {
+    // now we can load individual report widgets
+});
 ```
