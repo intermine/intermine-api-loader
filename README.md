@@ -8,7 +8,7 @@ InterMine JavaScript API Loader
 
 ## Requirements
 
-![image](https://raw.github.com/radekstepan/intermine-widget-client/report-widgets/widgets.png)
+![image](https://github.com/radekstepan/intermine-api-loader/raw/report-widgets/widgets.png)
 
 1. Serve as a cache of different widget loaders (report & list) for the different mines we point to on a page.
 2. For dependencies (JS, CSS) determine if we actually need to load them or not.
