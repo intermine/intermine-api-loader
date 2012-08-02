@@ -10,6 +10,10 @@ InterMine JavaScript API Loader
 
 ![image](https://github.com/radekstepan/intermine-api-loader/raw/report-widgets/widgets.png)
 
+* *Blue* represents a common workflow to load widget loaders be it for report or list analysis widgets.
+* *Purple* represents a flow of List Widget Loader asking the mine for JSON results for a specific type of a widget.
+* *Green* represents a flow of Report Widget Loader asking for a JS of a specific widget.
+
 ### CDN Role
 
 A repository of different versions of widgets and libraries InterMine depends on.
