@@ -1,10 +1,4 @@
-InterMine JavaScript API Loader
-
-## Why?
-1. To simplify delivery of InterMine's JavaScript clients.
-2. JS API provides a common namespace `intermine` for all our JavaScript.
-3. Can/will be utilized as a loader of dependencies such as jQuery, underscore etc. whenever needed.
-4. As JavaScript is namespaced, we can determine which of our libraries are already loaded.
+# InterMine JavaScript API Loader
 
 ## Requirements
 
