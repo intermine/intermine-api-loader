@@ -13,5 +13,6 @@ widgets:
     1.4.1:  'http://cdn.intermine.org/js/intermine/widgets/1.4.1/intermine.widgets.js'
     1.4.2:  'http://cdn.intermine.org/js/intermine/widgets/1.4.2/intermine.widgets.js'
     1.6.7:  'http://cdn.intermine.org/js/intermine/widgets/1.6.7/intermine.widgets.js'
+    1.6.8:  'http://cdn.intermine.org/js/intermine/widgets/1.6.8/intermine.widgets.js'
 reportWidgets:
     latest: 'http://cdn.intermine.org/js/intermine/report-widgets/latest/intermine.reportWidgets.js'

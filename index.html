@@ -10,7 +10,7 @@
 
         <link href="css/bootstrap.css" rel="stylesheet">
 
-        <script src="js/loader.js"></script>
+        <script src="js/intermine.api.js"></script>
         <script src="js/jquery.js"></script>
     </head>
 
@@ -44,21 +44,54 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td><strong>Widgets</strong></td>
-                            <td>latest branch</td>
+                            <td><strong>List Widgets</strong></td>
+                            <td>latest</td>
                             <td><a href="https://github.com/radekstepan/intermine-widget-client">https://github.com/radekstepan/intermine-widget-client</a></td>
                             <td id="widgets"><span class="label">?</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Report Widgets</strong></td>
+                            <td>latest</td>
+                            <td><a href="https://github.com/radekstepan/intermine-report-widgets">https://github.com/radekstepan/intermine-report-widgets</a></td>
+                            <td id="reportWidgets"><span class="label">?</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>jQuery</strong></td>
+                            <td>1.8.2</td>
+                            <td><a href="http://jquery.com/">http://jquery.com/</a></td>
+                            <td id="jQuery"><span class="label">?</span></td>
                         </tr>
                     </tbody>
                 </table>
 
                 <script>
                 (function() {
-                    var success = function() {
+                    // InterMine Libraries.
+                    var success, res, _i, _len, _ref;
+                    
+                    success = function() {
                         return $('<span/>', { 'class': 'label label-success', 'text': 'Yes' });
+                    };
+
+                    _ref = ['widgets', 'reportWidgets'];
+                    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+                        (function(res) {
+                            intermine.load(res, function() {
+                                $('#' + res).html(success);
+                            });
+                        })(_ref[_i]);
                     }
 
-                    intermine.load('widgets', function() { $('#widgets').html(success()); });
+                    // jQuery.
+                    intermine.load([
+                        {
+                            'name': 'jquery',
+                            'path': 'http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.8.2.min.js',
+                            'type': 'js'
+                        }
+                    ], function() {
+                        $('#jQuery').html(success);
+                    });
                 })();
                 </script>
 

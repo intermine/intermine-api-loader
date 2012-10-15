@@ -1,6 +1,6 @@
 {
   "name": "intermine-api-loader"
-  , "version": "0.0.0"
+  , "version": "0.0.1"
   , "private": true
   , "dependencies": {
     "coffee-script": "latest"

@@ -1,3 +1,5 @@
+root = this
+
 # Asynchronously load resources by adding them to the `<head>` and use callback.
 class Loader
 
@@ -7,17 +9,17 @@ class Loader
         tag.onload = callback
         tag.onreadystatechange = ->
             state = tag.readyState
-            if state is "complete" or state is "loaded"
+            if state is 'complete' or state is 'loaded'
                 tag.onreadystatechange = null
-                window.setTimeout callback, 0
+                root.setTimeout callback, 0
 
 
 class JSLoader extends Loader
 
     constructor: (path, callback) ->
-        script = document.createElement "script"
+        script = document.createElement 'script'
         script.src = path
-        script.type = "text/javascript"
+        script.type = 'text/javascript'
         @setCallback(script, callback) if callback
         @getHead().appendChild(script)
 
@@ -25,9 +27,9 @@ class JSLoader extends Loader
 class CSSLoader extends Loader
 
     constructor: (path, callback) ->
-        sheet = document.createElement "link"
-        sheet.rel = "stylesheet"
-        sheet.type = "text/css"
+        sheet = document.createElement 'link'
+        sheet.rel = 'stylesheet'
+        sheet.type = 'text/css'
         sheet.href = path
         # CSS callbacks are messy; http://www.phpied.com/when-is-a-stylesheet-really-loaded/
         @setCallback(sheet, callback) if callback
@@ -48,7 +50,7 @@ class Load
 
     load: (resources) =>   
         # Do we need to wait before continuing?
-        if @wait then window.setTimeout((=> @load resources), 0)
+        if @wait then root.setTimeout((=> @load resources), 0)
         else
             # Is that all?
             if resources.length
@@ -61,11 +63,18 @@ class Load
                 # What type is it?            
                 switch resource.type
                     when "js"
-                        # Do we need to actually download it? Check for resource name.
-                        if resource.name?
-                            # Bastardly browsers (IE, Webkit, Opera) attach `<div>` elements by their id to `window`.
-                            if window[resource.name]? and (typeof window[resource.name] is "function" or "object") then @done resource
+                        # Do we have a function checking for this library?
+                        if resource.isLoaded? and typeof(resource.isLoaded) is 'function'
+                            # Sync check.
+                            if resource.isLoaded() then @done resource
                             else new JSLoader(resource.path, => @done resource)
+
+                        # Do we need to actually download it? Check for resource name.
+                        else if resource.name?
+                            # Bastardly browsers (IE, Webkit, Opera) attach `<div>` elements by their id to `window`.
+                            if root[resource.name]? and (typeof root[resource.name] is 'function' or 'object') then @done resource
+                            else new JSLoader(resource.path, => @done resource)
+                        
                         # Standard load.
                         else new JSLoader(resource.path, => @done resource)
                     when "css"
@@ -73,7 +82,7 @@ class Load
                         new CSSLoader resource.path ; @done resource
 
             # Call back when all is done.
-            if @count or @wait then window.setTimeout((=> @load resources), 0) else @callback()
+            if @count or @wait then root.setTimeout((=> @load resources), 0) else @callback()
 
     done: (resource) =>
         @wait = false if resource.wait? # Wait no more.
@@ -83,7 +92,7 @@ class Load
 # --------------------------------------------
 
 
-if not window['intermine'] then window['intermine'] = {}
+if not root.intermine then root.intermine = {}
 
 intermine.load = (opts...) ->
     library = opts[0]
