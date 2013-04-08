@@ -64,7 +64,3 @@ intermine.load(resources, function() {
 });
     
 ```
-
-## Example:
-
-[FlyMine Beta Widgets](http://tinkerbin.com/Xb3SZhOK) on Tinkerbin
