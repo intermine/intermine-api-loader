@@ -1,16 +1,58 @@
 (function() {
-  var CSSLoader, JSLoader, async, load, root, _each, _keys, _reduce;
-  
+  var async, intermine, load, loading, paths, root, _each, _keys, _map, _reduce;
+
+  paths = {
+    "widgets": {
+      "latest": "http://cdn.intermine.org/js/intermine/widgets/latest/intermine.widgets.js",
+      "1.0.0": "http://cdn.intermine.org/js/intermine/widgets/1.0.0/intermine.widgets.js",
+      "1.1.0": "http://cdn.intermine.org/js/intermine/widgets/1.1.0/intermine.widgets.js",
+      "1.1.7": "http://cdn.intermine.org/js/intermine/widgets/1.1.7/intermine.widgets.js",
+      "1.1.8": "http://cdn.intermine.org/js/intermine/widgets/1.1.8/intermine.widgets.js",
+      "1.1.9": "http://cdn.intermine.org/js/intermine/widgets/1.1.9/intermine.widgets.js",
+      "1.1.10": "http://cdn.intermine.org/js/intermine/widgets/1.1.10/intermine.widgets.js",
+      "1.2.0": "http://cdn.intermine.org/js/intermine/widgets/1.2.0/intermine.widgets.js",
+      "1.2.1": "http://cdn.intermine.org/js/intermine/widgets/1.2.1/intermine.widgets.js",
+      "1.3.0": "http://cdn.intermine.org/js/intermine/widgets/1.3.0/intermine.widgets.js",
+      "1.4.0": "http://cdn.intermine.org/js/intermine/widgets/1.4.0/intermine.widgets.js",
+      "1.4.1": "http://cdn.intermine.org/js/intermine/widgets/1.4.1/intermine.widgets.js",
+      "1.4.2": "http://cdn.intermine.org/js/intermine/widgets/1.4.2/intermine.widgets.js",
+      "1.6.7": "http://cdn.intermine.org/js/intermine/widgets/1.6.7/intermine.widgets.js",
+      "1.6.8": "http://cdn.intermine.org/js/intermine/widgets/1.6.8/intermine.widgets.js",
+      "1.7.0": "http://cdn.intermine.org/js/intermine/widgets/1.7.0/intermine.widgets.js",
+      "1.7.3": "http://cdn.intermine.org/js/intermine/widgets/1.7.3/intermine.widgets.js",
+      "1.8.0": "http://cdn.intermine.org/js/intermine/widgets/1.8.0/intermine.widgets.js",
+      "1.8.1": "http://cdn.intermine.org/js/intermine/widgets/1.8.1/intermine.widgets.js",
+      "1.8.2": "http://cdn.intermine.org/js/intermine/widgets/1.8.2/intermine.widgets.js",
+      "1.8.3": "http://cdn.intermine.org/js/intermine/widgets/1.8.3/intermine.widgets.js",
+      "1.9.1": "http://cdn.intermine.org/js/intermine/widgets/1.9.1/intermine.widgets.js",
+      "1.10.0": "http://cdn.intermine.org/js/intermine/widgets/1.10.0/intermine.widgets.js",
+      "1.11.2": "http://cdn.intermine.org/js/intermine/widgets/1.11.2/intermine.widgets.js"
+    },
+    "report-widgets": {
+      "latest": "http://cdn.intermine.org/js/intermine/report-widgets/latest/intermine.report-widgets.js",
+      "0.7.0": "http://cdn.intermine.org/js/intermine/report-widgets/0.7.0/intermine.report-widgets.js"
+    }
+  };
+
   root = this;
-  
-  JSLoader = function(path, cb) {
-    var script, setCallback;
-  
+
+  root.intermine = intermine = root.intermine || {};
+
+  if (intermine.load) {
+    return;
+  }
+
+  intermine.loader = function(path, type, cb) {
+    var script, setCallback, sheet;
+
+    if (type == null) {
+      type = 'js';
+    }
     setCallback = function(tag, cb) {
       tag.onload = cb;
       return tag.onreadystatechange = function() {
         var state;
-  
+
         state = tag.readyState;
         if (state === 'complete' || state === 'loaded') {
           tag.onreadystatechange = null;
@@ -18,32 +60,36 @@
         }
       };
     };
-    script = document.createElement('script');
-    script.src = path;
-    script.type = 'text/javascript';
-    if (cb) {
-      setCallback(script, cb);
+    switch (type) {
+      case 'js':
+        script = document.createElement('script');
+        script.src = path;
+        script.type = 'text/javascript';
+        if (cb) {
+          setCallback(script, cb);
+        }
+        return document.getElementsByTagName('head')[0].appendChild(script);
+      case 'css':
+        sheet = document.createElement('link');
+        sheet.rel = 'stylesheet';
+        sheet.type = 'text/css';
+        sheet.href = path;
+        document.getElementsByTagName('head')[0].appendChild(sheet);
+        return cb();
+      default:
+        throw "Unrecognized type `" + type + "`";
     }
-    return document.getElementsByTagName('head')[0].appendChild(script);
   };
-  
-  CSSLoader = function(path) {
-    var sheet;
-  
-    sheet = document.createElement('link');
-    sheet.rel = 'stylesheet';
-    sheet.type = 'text/css';
-    sheet.href = path;
-    return document.getElementsByTagName('head')[0].appendChild(sheet);
-  };
-  
+
+  loading = {};
+
   load = function(resources, type, cb) {
     var key, obj, value, _fn;
-  
+
     obj = {};
     _fn = function(key, value) {
       var check, dep, depends, path;
-  
+
       path = value.path, check = value.check, depends = value.depends;
       if (!path) {
         throw "Library `path` not provided for " + key;
@@ -53,10 +99,30 @@
           return cb();
         };
       }
-      if (type === 'js' && depends && depends instanceof Array) {
+      if (loading[key]) {
+        return obj[key] = function(cb) {
+          var isDone;
+
+          return (isDone = function() {
+            if (!loading[key]) {
+              return setTimeout(isDone, 0);
+            } else {
+              return cb();
+            }
+          })();
+        };
+      }
+      loading[key] = true;
+      obj[key] = function(cb) {
+        return intermine.loader(path, type, function() {
+          delete loading[key];
+          return cb();
+        });
+      };
+      if (depends && depends instanceof Array) {
         if (!(function() {
           var _i, _len, _results;
-  
+
           _results = [];
           for (_i = 0, _len = depends.length; _i < _len; _i++) {
             dep = depends[_i];
@@ -66,53 +132,33 @@
         })()) {
           throw "Unrecognized dependency `" + dep + "`";
         }
-        return obj[key] = depends.concat(function(cb) {
-          return JSLoader(path, function() {
-            return cb();
-          });
-        });
-      }
-      switch (type) {
-        case 'js':
-          return obj[key] = function(cb) {
-            return JSLoader(path, function() {
-              return cb();
-            });
-          };
-        case 'css':
-          return obj[key] = function(cb) {
-            CSSLoader(path);
-            return cb();
-          };
-        default:
-          throw "Unrecognized type `" + type + "`";
+        return obj[key] = depends.concat(obj[key]);
       }
     };
     for (key in resources) {
       value = resources[key];
       _fn(key, value);
     }
-    return async.auto(obj, cb);
+    return async.auto(obj, function(err, results) {
+      if (err) {
+        throw err;
+      }
+      return cb();
+    });
   };
-  
-  root.intermine = root.intermine || {};
-  
-  if (intermine.load) {
-    return;
-  }
-  
+
   intermine.load = function(library, version, cb) {
-    var i, key, name, o, path, resources, type, wait, _i, _len, _ref, _ref1;
-  
+    var handle, i, key, name, o, path, resources, type, wait, _ref;
+
     if (typeof version === 'function') {
       cb = version;
       version = 'latest';
     }
     if (typeof library === 'string') {
-      if (intermine.resources[library] == null) {
+      if (!paths[library]) {
         throw "Unknown library `" + library + "`";
       }
-      if ((path = intermine.resources[library][version]) == null) {
+      if (!(path = paths[library][version])) {
         throw "Unknown `" + library + "` version " + version;
       }
       o = {};
@@ -139,8 +185,7 @@
         }
         library[i].name = name;
         o[type][name] = {
-          'path': path,
-          'check': name
+          'path': path
         };
         if (!!wait && i !== 0) {
           o[type][name].depends = [library[i - 1].name];
@@ -149,23 +194,31 @@
       library = o;
     }
     if (typeof library === 'object') {
-      _ref1 = ['css', 'js'];
-      for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-        key = _ref1[_i];
-        if ((resources = library[key])) {
-          load(resources, key, cb);
+      i = _keys(library).length;
+      handle = function() {
+        if (i-- && !!!i) {
+          return cb();
         }
-      }
-      return;
+      };
+      return (function() {
+        var _results;
+
+        _results = [];
+        for (key in library) {
+          resources = library[key];
+          _results.push(load(resources, key, handle));
+        }
+        return _results;
+      })();
     }
     throw 'Unrecognized input';
   };
-  
+
   async = {};
-  
+
   _each = function(arr, iterator) {
     var key, value, _results;
-  
+
     if (arr.forEach) {
       return arr.forEach(iterator);
     }
@@ -176,7 +229,20 @@
     }
     return _results;
   };
-  
+
+  _map = function(arr, iterator) {
+    var results;
+
+    if (arr.map) {
+      return arr.map(iterator);
+    }
+    results = [];
+    _each(arr, function(x, i, a) {
+      return results.push(iterator(x, i, a));
+    });
+    return results;
+  };
+
   _reduce = function(arr, iterator, memo) {
     if (arr.reduce) {
       return arr.reduce(iterator, memo);
@@ -186,10 +252,10 @@
     });
     return memo;
   };
-  
+
   _keys = function(obj) {
     var k, keys;
-  
+
     if (Object.keys) {
       return Object.keys(obj);
     }
@@ -201,18 +267,26 @@
     }
     return keys;
   };
-  
-  if (typeof setImmediate === 'function') {
-    async.setImmediate = setImmediate;
+
+  if (typeof process === 'undefined' || !process.nextTick) {
+    if (typeof setImmediate === 'function') {
+      async.setImmediate = setImmediate;
+    } else {
+      async.setImmediate = function(fn) {
+        return setTimeout(fn, 0);
+      };
+    }
   } else {
-    async.setImmediate = function(fn) {
-      return setTimeout(fn, 0);
-    };
+    if (typeof setImmediate !== 'undefined') {
+      async.setImmediate = setImmediate;
+    } else {
+      async.setImmediate = process.nextTick;
+    }
   }
-  
+
   async.auto = function(tasks, callback) {
     var addListener, keys, listeners, removeListener, results, taskComplete;
-  
+
     callback = callback || function() {};
     keys = _keys(tasks);
     if (!keys.length) {
@@ -225,7 +299,7 @@
     };
     removeListener = function(fn) {
       var i, listener;
-  
+
       for (i in listeners) {
         listener = listeners[i];
         if (listener === fn) {
@@ -247,11 +321,11 @@
     });
     return _each(keys, function(k) {
       var listener, ready, requires, task, taskCallback;
-  
+
       task = (tasks[k] instanceof Function ? [tasks[k]] : tasks[k]);
       taskCallback = function(err) {
         var args, safeResults;
-  
+
         args = Array.prototype.slice.call(arguments, 1);
         if (args.length <= 1) {
           args = args[0];
@@ -288,6 +362,5 @@
       }
     });
   };
-  
-intermine.resources = {"widgets":{"latest":"http://cdn.intermine.org/js/intermine/widgets/latest/intermine.widgets.js","1.0.0":"http://cdn.intermine.org/js/intermine/widgets/1.0.0/intermine.widgets.js","1.1.0":"http://cdn.intermine.org/js/intermine/widgets/1.1.0/intermine.widgets.js","1.1.7":"http://cdn.intermine.org/js/intermine/widgets/1.1.7/intermine.widgets.js","1.1.8":"http://cdn.intermine.org/js/intermine/widgets/1.1.8/intermine.widgets.js","1.1.9":"http://cdn.intermine.org/js/intermine/widgets/1.1.9/intermine.widgets.js","1.1.10":"http://cdn.intermine.org/js/intermine/widgets/1.1.10/intermine.widgets.js","1.2.0":"http://cdn.intermine.org/js/intermine/widgets/1.2.0/intermine.widgets.js","1.2.1":"http://cdn.intermine.org/js/intermine/widgets/1.2.1/intermine.widgets.js","1.3.0":"http://cdn.intermine.org/js/intermine/widgets/1.3.0/intermine.widgets.js","1.4.0":"http://cdn.intermine.org/js/intermine/widgets/1.4.0/intermine.widgets.js","1.4.1":"http://cdn.intermine.org/js/intermine/widgets/1.4.1/intermine.widgets.js","1.4.2":"http://cdn.intermine.org/js/intermine/widgets/1.4.2/intermine.widgets.js","1.6.7":"http://cdn.intermine.org/js/intermine/widgets/1.6.7/intermine.widgets.js","1.6.8":"http://cdn.intermine.org/js/intermine/widgets/1.6.8/intermine.widgets.js","1.7.0":"http://cdn.intermine.org/js/intermine/widgets/1.7.0/intermine.widgets.js","1.7.3":"http://cdn.intermine.org/js/intermine/widgets/1.7.3/intermine.widgets.js","1.8.0":"http://cdn.intermine.org/js/intermine/widgets/1.8.0/intermine.widgets.js","1.8.1":"http://cdn.intermine.org/js/intermine/widgets/1.8.1/intermine.widgets.js","1.8.2":"http://cdn.intermine.org/js/intermine/widgets/1.8.2/intermine.widgets.js","1.8.3":"http://cdn.intermine.org/js/intermine/widgets/1.8.3/intermine.widgets.js","1.9.1":"http://cdn.intermine.org/js/intermine/widgets/1.9.1/intermine.widgets.js","1.10.0":"http://cdn.intermine.org/js/intermine/widgets/1.10.0/intermine.widgets.js","1.11.2":"http://cdn.intermine.org/js/intermine/widgets/1.11.2/intermine.widgets.js"},"report-widgets":{"latest":"http://cdn.intermine.org/js/intermine/report-widgets/latest/intermine.report-widgets.js","0.7.0":"http://cdn.intermine.org/js/intermine/report-widgets/0.7.0/intermine.report-widgets.js"}};
+
 }).call(this);

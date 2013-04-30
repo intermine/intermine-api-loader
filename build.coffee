@@ -1,7 +1,6 @@
 fs      = require 'fs'
 cs      = require 'coffee-script'
 yaml    = require 'js-yaml'
-winston = require 'winston'
 async   = require 'async'
 uglify  = require 'uglify-js'
 
@@ -34,17 +33,17 @@ async.waterfall [ (cb) ->
         # Swap order?
         if results[0][0] is 'loader.coffee' then results = [ results[1], results[0] ]
 
-        # Compile please.
+        # Add paths and join.
+        merged = [ 'paths = ' + paths, results[0].pop(), results[1].pop() ].join('\n')
+
+        # Compile please, with closure.
         try
-            js = cs.compile [ results[0].pop(), results[1].pop() ].join('\n'), 'bare': 'on'
+            js = cs.compile merged
         catch err
             return cb err
 
-        # Shift them by 2 notches.
-        js = ( '  ' + line for line in js.split('\n') ).join('\n')
-
         # Merge the files into one and wrap in closure.
-        cb null, "(function() {\n#{js}\nintermine.resources = #{paths};\n}).call(this);"
+        cb null, js
 
 # Write the client loader.
 (loader, cb) ->

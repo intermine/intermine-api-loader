@@ -41,6 +41,20 @@ intermine.load({
 });
 ```
 
+## Build your Own
+
+```bash
+$ npm install
+$ make build
+```
+
+## Test in CLI
+
+```bash
+$ npm install
+$ make test
+```
+
 ## Spec
 
 1. Each dependency to load is grouped under either a `css` or `js` key.
@@ -51,10 +65,4 @@ intermine.load({
 4. A dependency will be resolved only after all dependencies are met which is defined in an Array under `depends` key.
 5. If two requests to load dependency X come at the same time we make only one load and use cache for the second.
 6. CSS is a bit random so we just load whatever you ask for not waiting for anything.
-
-## Build
-
-```bash
-$ npm install
-$ make
-```
+7. Keys `load` and `loader` are taken over by us on the `intermine` namespace.

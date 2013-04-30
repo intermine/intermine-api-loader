@@ -1,8 +1,15 @@
 #!/usr/bin/env coffee
 root = this
 
-# JS loader through head appending.
-JSLoader = (path, cb) ->
+# Export.
+root.intermine = intermine = root.intermine or {}
+
+# Only allow one instance.
+return if intermine.load
+
+# Export the loader so we can override when testing.
+intermine.loader = (path, type='js', cb) ->
+    # Give us a call when you are done.
     setCallback = (tag, cb) ->
         tag.onload = cb
         tag.onreadystatechange = ->
@@ -10,20 +17,29 @@ JSLoader = (path, cb) ->
             if state is 'complete' or state is 'loaded'
                 tag.onreadystatechange = null
                 root.setTimeout cb, 0
+    
+    switch type
+        when 'js'
+            script = document.createElement 'script'
+            script.src = path
+            script.type = 'text/javascript'
+            setCallback(script, cb) if cb
+            document.getElementsByTagName('head')[0].appendChild(script)
 
-    script = document.createElement 'script'
-    script.src = path
-    script.type = 'text/javascript'
-    setCallback(script, cb) if cb
-    document.getElementsByTagName('head')[0].appendChild(script)
+        when 'css'
+            sheet = document.createElement 'link'
+            sheet.rel = 'stylesheet'
+            sheet.type = 'text/css'
+            sheet.href = path
+            document.getElementsByTagName('head')[0].appendChild(sheet)
+            # Immediate callback, do not wait for anything.
+            cb()
 
-# CSS loading is messy, we do not care for a callback.
-CSSLoader = (path) ->
-    sheet = document.createElement 'link'
-    sheet.rel = 'stylesheet'
-    sheet.type = 'text/css'
-    sheet.href = path
-    document.getElementsByTagName('head')[0].appendChild(sheet)
+        else
+            throw "Unrecognized type `#{type}`"
+
+# Dependencies that are being loaded are put here.
+loading = {}
 
 # A new auto-loader.
 load = (resources, type, cb) ->
@@ -43,31 +59,37 @@ load = (resources, type, cb) ->
                 # Add an immediate callback to the object :).
                 return obj[key] = (cb) -> cb()
 
-        # Do we have dependencies? We only care if we are a JS...
-        if type is 'js' and depends and depends instanceof Array
+        # Maybe this library is being loaded right now elsewhere on the page?
+        if loading[key]
+            # OK, be called when it is done.
+            return obj[key] = (cb) ->
+                # Wait for the library to be loaded.
+                do isDone = ->
+                    unless loading[key]
+                        setTimeout isDone, 0
+                    else
+                        cb() # finally the dependency got loaded
+
+        # This dep is registered for loading.
+        loading[key] = true
+
+        # Straight up fetch.
+        obj[key] = (cb) ->
+            intermine.loader path, type, ->
+                delete loading[key] # has loaded...
+                cb()
+
+        # Do we have dependencies?
+        if depends and depends instanceof Array
             # Make sure we recognize them.
             ( throw "Unrecognized dependency `#{dep}`" unless resources[dep]? for dep in depends )
             # Append our loader after the deps.
-            return obj[key] = depends.concat (cb) ->
-                JSLoader path, -> cb()
-        
-        # Straight up fetch.
-        switch type
-            when 'js'
-                obj[key] = (cb) -> JSLoader path, -> cb()
-            when 'css' # immediate callback
-                obj[key] = (cb) -> CSSLoader(path) ; cb()
-            else
-                throw "Unrecognized type `#{type}`"
+            return obj[key] = depends.concat obj[key]
 
     # Pass to async to work it all out.
-    async.auto obj, cb
-
-# Export.
-root.intermine = root.intermine or {}
-
-# Only allow one instance.
-return if intermine.load
+    async.auto obj, (err, results) ->
+        throw err if err
+        cb()
 
 # Public interface that converts various types of input into the standard.
 intermine.load = (library, version, cb) ->
@@ -79,8 +101,8 @@ intermine.load = (library, version, cb) ->
     # If library is a string and we have version defined, we are a "named" resource.
     if typeof library is 'string'
         # Do we know this library?
-        throw "Unknown library `#{library}`" unless intermine.resources[library]?
-        throw "Unknown `#{library}` version #{version}" unless (path = intermine.resources[library][version])?
+        throw "Unknown library `#{library}`" unless paths[library]
+        throw "Unknown `#{library}` version #{version}" unless (path = paths[library][version])
 
         o = {}
         o["intermine.#{library}"] = 'path': path
@@ -104,7 +126,7 @@ intermine.load = (library, version, cb) ->
             library[i].name = name
 
             # Save this one.
-            o[type][name] = 'path': path, 'check': name
+            o[type][name] = 'path': path
 
             # Are we waiting for the previous one? Make it a dep.
             if !!wait and i isnt 0 # stupid to wait when we are first
@@ -115,9 +137,13 @@ intermine.load = (library, version, cb) ->
 
     # Load resources specified as an object (new way).
     if typeof library is 'object'
-        # Go through the types we know about.
-        for key in [ 'css', 'js' ]
-            if (resources = library[key]) then load resources, key, cb
-        return
+        # We are going to be loading this many...
+        i = _keys(library).length
+        
+        # Call back when all is done padre.
+        handle = -> return cb() if ( i-- and not !!i )
+
+        # Launch them all.
+        return ( load resources, key, handle for key, resources of library )
 
     throw 'Unrecognized input'

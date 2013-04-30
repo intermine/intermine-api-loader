@@ -6,6 +6,13 @@ _each = (arr, iterator) ->
     return arr.forEach(iterator) if arr.forEach
     ( iterator(value, key, arr) for key, value of arr )
 
+_map = (arr, iterator) ->
+    return arr.map(iterator) if arr.map
+    results = []
+    _each arr, (x, i, a) ->
+        results.push iterator(x, i, a)
+    results
+
 _reduce = (arr, iterator, memo) ->
     return arr.reduce(iterator, memo) if arr.reduce
     _each arr, (x, i, a) ->
@@ -19,11 +26,17 @@ _keys = (obj) ->
         keys.push k if obj.hasOwnProperty(k)
     keys
 
-# setImmediate().
-if typeof setImmediate is 'function' # implemented?
-    async.setImmediate = setImmediate
-else # not, just use setTimeout
-    async.setImmediate = (fn) -> setTimeout fn, 0
+# setImmediate for node and browser.
+if typeof process is 'undefined' or not (process.nextTick)
+    if typeof setImmediate is 'function'
+        async.setImmediate = setImmediate
+    else
+        async.setImmediate = (fn) -> setTimeout fn, 0
+else
+    if typeof setImmediate isnt 'undefined'
+        async.setImmediate = setImmediate
+    else
+        async.setImmediate = process.nextTick
 
 # A mini async implementation.
 async.auto = (tasks, callback) ->
