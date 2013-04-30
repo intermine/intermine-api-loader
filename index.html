@@ -10,8 +10,11 @@
 
         <link href="css/bootstrap.css" rel="stylesheet">
 
+        <script src="http://cdn.intermine.org/js/setImmediate/1.0.1/setImmediate.min.js"></script>
+        <script src="http://cdn.intermine.org/js/jquery/1.9.1/jquery-1.9.1.min.js"></script>
+        <script src="http://cdn.intermine.org/js/async/0.2.6/async.min.js"></script>
+
         <script src="js/intermine.api.js"></script>
-        <script src="js/jquery.js"></script>
     </head>
 
     <body>
@@ -31,7 +34,7 @@
         <div class="container">
 
             <div class="row">
-                <h2>Load InterMine Libraries</h2>
+                <h2>Test Libraries</h2>
 
                 <table class="table table-striped">
                     <thead>
@@ -46,14 +49,14 @@
                         <tr>
                             <td><strong>List Widgets</strong></td>
                             <td>latest</td>
-                            <td><a href="https://github.com/radekstepan/intermine-widget-client">https://github.com/radekstepan/intermine-widget-client</a></td>
+                            <td><a href="https://github.com/intermine/intermine-list-widgets">https://github.com/intermine/intermine-list-widgets</a></td>
                             <td id="widgets"><span class="label">?</span></td>
                         </tr>
                         <tr>
                             <td><strong>Report Widgets</strong></td>
                             <td>latest</td>
-                            <td><a href="https://github.com/radekstepan/intermine-report-widgets">https://github.com/radekstepan/intermine-report-widgets</a></td>
-                            <td id="reportWidgets"><span class="label">?</span></td>
+                            <td><a href="https://github.com/intermine/intermine-report-widgets">https://github.com/intermine/intermine-report-widgets</a></td>
+                            <td id="report-widgets"><span class="label">?</span></td>
                         </tr>
                         <tr>
                             <td><strong>jQuery</strong></td>
@@ -73,7 +76,7 @@
                         return $('<span/>', { 'class': 'label label-success', 'text': 'Yes' });
                     };
 
-                    _ref = ['widgets', 'reportWidgets'];
+                    _ref = ['widgets', 'report-widgets'];
                     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
                         (function(res) {
                             intermine.load(res, function() {

@@ -35,82 +35,115 @@ class CSSLoader extends Loader
         @setCallback(sheet, callback) if callback
         @getHead().appendChild(sheet)
 
+# A new auto-loader.
+load = (resources, type, cb) ->
+    # Create the object for async.
+    obj = {}
+    for key, { path, check, depends } of resources
+        # Check we have the URL path.
+        throw "Missing `path` for #{key}" unless path
 
-# Pass resources to Load and it will call you back once everything is done.
-class Load
+        # Do we have a check?
+        if check
+            switch typeof check
+                # A string check on window?
+                when 'string'
+                    if root[check]? and (typeof root[check] is 'function' or 'object')
+                        console.log 'already have', key
+                        continue
+                # A sync function check.
+                when 'function'
+                    continue if check()
+                else
+                    throw "Misconfigured `check` for #{key}"
 
-    wait: false
+        # We will have to be loading.
+        console.log 'load', key
 
-    constructor: (resources, @callback) ->
-        # We need to sort out this much.
-        @count = resources.length
-        
-        # Initial load.
-        @load resources.reverse()
+    return
 
-    load: (resources) =>   
-        # Do we need to wait before continuing?
-        if @wait then root.setTimeout((=> @load resources), 0)
-        else
-            # Is that all?
-            if resources.length
-                # Remove the 'first' resource from the queue.
-                resource = resources.pop()
+    async.auto
+        'D': [ 'B', (cb) ->
+            console.log 'D'
+            setTimeout cb, 1
+        ]
+        'B': (cb) ->
+            console.log 'B'
+            setTimeout cb, 1
+        'A': (cb) ->
+            console.log 'A'
+            setTimeout cb, 1
+        'C': [ 'A', 'B', (cb) ->
+            console.log 'C'
+            setTimeout cb, 1
+        ]
 
-                # Wait?
-                @wait = true if resource.wait?
+root.intermine = root.intermine or {}
 
-                # What type is it?            
-                switch resource.type
-                    when "js"
-                        # Do we have a function checking for this library?
-                        if resource.isLoaded? and typeof(resource.isLoaded) is 'function'
-                            # Sync check.
-                            if resource.isLoaded() then @done resource
-                            else new JSLoader(resource.path, => @done resource)
+intermine.load = (library, version, cb) ->
+    # Has a version been passed in?
+    if typeof version is 'function'
+        cb = version
+        version = 'latest'
 
-                        # Do we need to actually download it? Check for resource name.
-                        else if resource.name?
-                            # Bastardly browsers (IE, Webkit, Opera) attach `<div>` elements by their id to `window`.
-                            if root[resource.name]? and (typeof root[resource.name] is 'function' or 'object') then @done resource
-                            else new JSLoader(resource.path, => @done resource)
-                        
-                        # Standard load.
-                        else new JSLoader(resource.path, => @done resource)
-                    when "css"
-                        # Just load it.
-                        new CSSLoader resource.path ; @done resource
+    # If library is a string and we have version defined, we are a "named" resource.
+    if typeof library is 'string'
+        # Do we know this library?
+        throw "Unknown library `#{library}`" unless intermine.resources[library]?
+        throw "Unknown `#{library}` version #{version}" unless (path = intermine.resources[library][version])?
 
-            # Call back when all is done.
-            if @count or @wait then root.setTimeout((=> @load resources), 0) else @callback()
+        o = {}
+        o["intermine.#{library}"] = 'path': path
 
-    done: (resource) =>
-        @wait = false if resource.wait? # Wait no more.
-        @count -= 1 # One less.
+        return load o, 'js', cb
 
+    # If we are an Array, convert to the new way of loading.
+    # This method is deprecated in favor of providing an object.
+    if library instanceof Array
+        o = 'js': {}, 'css': {}
+
+        # Explode the config.
+        for i, { name, path, type, wait } of library
+            throw 'Library `path` or `type` not provided' unless path or type
+            throw "Library type `#{type}` not recognized" if type not in [ 'css', 'js' ]
+            
+            # Name is strictly not provided, so make one up from path if needed.
+            name = path.split('/').pop() unless name
+
+            # Save this one.
+            o[type][name] = 'path': path, 'check': name
+
+            # Are we waiting for the previous one? Make it a dep.
+            if !!wait and i isnt 0 # stupid to wait when we are first
+                o[type][name].depends = [ library[i - 1].name ] # we have checked the name of our predecessor already
+
+        # Library is an object now.
+        library = o
+
+    # Load resources specified as an object (new way).
+    if typeof library is 'object'
+        # Go through the types we know about.
+        for key in [ 'css', 'js' ]
+            if (resources = library[key]) then load resources, key, cb
+        return
+
+    throw 'Unrecognized input'
 
 # --------------------------------------------
 
-
-if not root.intermine then root.intermine = {}
-
-intermine.load = (opts...) ->
-    library = opts[0]
-    (typeof opts[1] is 'function' and version = 'latest') or version = opts[1]
-    callback = opts.pop()
-
-    # Internal loader.
-    if library instanceof Array then return new Load library, callback
-
-    # 'Public' loader.
-    if intermine.resources[library]?
-        if intermine.resources[library][version]?
-            new Load [
-                'name': "intermine.#{library}"
-                'path': intermine.resources[library][version]
-                'type': 'js'
-            ], callback
-        else
-            console.log "#{library} #{version} is not supported at the moment"
-    else
-        console.log "#{library} is not supported at the moment"
+intermine.load
+    'css':
+        'A':
+            'path': 'http://a'
+        'B':
+            'path': 'http://b'
+    'js':
+        'A':
+            'path': 'http://a'
+            'depends': [ 'B' ]
+        'B':
+            'path': 'http://b'
+            'check': -> true
+        'C':
+            'path': 'http://c'
+            'depends': [ 'A', 'B' ]

@@ -1,4 +1,4 @@
-InterMine JavaScript API Loader
+InterMine API Loader
 
 ## Why?
 1. To simplify delivery of InterMine's JavaScript clients.
@@ -6,7 +6,7 @@ InterMine JavaScript API Loader
 3. Can/will be utilized as a loader of dependencies such as jQuery, underscore etc. whenever needed.
 4. As JavaScript is namespaced, we can determine which of our libraries are already loaded.
 
-## Use:
+## Use
 
 In an embedding context, the only dependency would be the jsapi, hosted remotely. We provide a callback and wait for the API to load the Widgets library.
 
@@ -65,6 +65,9 @@ intermine.load(resources, function() {
     
 ```
 
-## Example:
+## Build
 
-[FlyMine Beta Widgets](http://tinkerbin.com/Xb3SZhOK) on Tinkerbin
+```bash
+$ npm install
+$ make
+```
