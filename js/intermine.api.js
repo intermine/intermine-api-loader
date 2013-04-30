@@ -1,124 +1,84 @@
 (function() {
-var CSSLoader, JSLoader, Loader, load, root,
-  __hasProp = {}.hasOwnProperty,
-  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+var CSSLoader, JSLoader, load, root;
 
 root = this;
 
-Loader = (function() {
-  function Loader() {}
+JSLoader = function(path, cb) {
+  var script, setCallback;
 
-  Loader.prototype.getHead = function() {
-    return document.getElementsByTagName('head')[0];
-  };
-
-  Loader.prototype.setCallback = function(tag, callback) {
-    tag.onload = callback;
+  setCallback = function(tag, cb) {
+    tag.onload = cb;
     return tag.onreadystatechange = function() {
       var state;
 
       state = tag.readyState;
       if (state === 'complete' || state === 'loaded') {
         tag.onreadystatechange = null;
-        return root.setTimeout(callback, 0);
+        return root.setTimeout(cb, 0);
       }
     };
   };
-
-  return Loader;
-
-})();
-
-JSLoader = (function(_super) {
-  __extends(JSLoader, _super);
-
-  function JSLoader(path, callback) {
-    var script;
-
-    script = document.createElement('script');
-    script.src = path;
-    script.type = 'text/javascript';
-    if (callback) {
-      this.setCallback(script, callback);
-    }
-    this.getHead().appendChild(script);
+  script = document.createElement('script');
+  script.src = path;
+  script.type = 'text/javascript';
+  if (cb) {
+    setCallback(script, cb);
   }
+  return document.getElementsByTagName('head')[0].appendChild(script);
+};
 
-  return JSLoader;
+CSSLoader = function(path) {
+  var sheet;
 
-})(Loader);
-
-CSSLoader = (function(_super) {
-  __extends(CSSLoader, _super);
-
-  function CSSLoader(path, callback) {
-    var sheet;
-
-    sheet = document.createElement('link');
-    sheet.rel = 'stylesheet';
-    sheet.type = 'text/css';
-    sheet.href = path;
-    if (callback) {
-      this.setCallback(sheet, callback);
-    }
-    this.getHead().appendChild(sheet);
-  }
-
-  return CSSLoader;
-
-})(Loader);
+  sheet = document.createElement('link');
+  sheet.rel = 'stylesheet';
+  sheet.type = 'text/css';
+  sheet.href = path;
+  return document.getElementsByTagName('head')[0].appendChild(sheet);
+};
 
 load = function(resources, type, cb) {
-  var check, depends, key, obj, path, _ref;
+  var check, dep, depends, key, obj, path, _ref;
 
   obj = {};
   for (key in resources) {
     _ref = resources[key], path = _ref.path, check = _ref.check, depends = _ref.depends;
     if (!path) {
-      throw "Missing `path` for " + key;
+      throw "Library `path` not provided for " + key;
     }
-    if (check) {
-      switch (typeof check) {
-        case 'string':
-          if ((root[check] != null) && (typeof root[check] === 'function' || 'object')) {
-            console.log('already have', key);
-            continue;
-          }
-          break;
-        case 'function':
-          if (check()) {
-            continue;
-          }
-          break;
-        default:
-          throw "Misconfigured `check` for " + key;
+    if (check && typeof check === 'function') {
+      if (check()) {
+        continue;
       }
+    }
+    if ((root[key] != null) && (typeof root[key] === 'function' || 'object')) {
+      console.log('already have', key);
+      continue;
     }
     console.log('load', key);
+    if (type === 'js' && depends && depends instanceof Array) {
+      if (!(function() {
+        var _i, _len, _results;
+
+        _results = [];
+        for (_i = 0, _len = depends.length; _i < _len; _i++) {
+          dep = depends[_i];
+          _results.push(resources[dep] != null);
+        }
+        return _results;
+      })()) {
+        throw "Unrecognized dependency `" + dep + "`";
+      }
+      obj[key] = depends.concat(function(cb) {
+        return JSLoader(path, cb);
+      });
+    } else {
+      obj[key] = function(cb) {
+        return JSLoader(path, cb);
+      };
+    }
   }
-  return;
-  return async.auto({
-    'D': [
-      'B', function(cb) {
-        console.log('D');
-        return setTimeout(cb, 1);
-      }
-    ],
-    'B': function(cb) {
-      console.log('B');
-      return setTimeout(cb, 1);
-    },
-    'A': function(cb) {
-      console.log('A');
-      return setTimeout(cb, 1);
-    },
-    'C': [
-      'A', 'B', function(cb) {
-        console.log('C');
-        return setTimeout(cb, 1);
-      }
-    ]
-  });
+  return async.auto(obj);
 };
 
 root.intermine = root.intermine || {};
@@ -183,28 +143,31 @@ intermine.load = function(library, version, cb) {
 };
 
 intermine.load({
-  'css': {
-    'A': {
-      'path': 'http://a'
-    },
-    'B': {
-      'path': 'http://b'
-    }
-  },
   'js': {
-    'A': {
-      'path': 'http://a',
-      'depends': ['B']
+    'JSON': {
+      'path': 'http://cdn.intermine.org/js/json3/3.2.2/json3.min.js'
     },
-    'B': {
-      'path': 'http://b',
+    'setImmediate': {
+      'path': 'http://cdn.intermine.org/js/setImmediate/1.0.1/setImmediate.min.js',
       'check': function() {
         return true;
       }
     },
-    'C': {
-      'path': 'http://c',
-      'depends': ['A', 'B']
+    'async': {
+      'path': 'http://cdn.intermine.org/js/async/0.2.6/async.min.js',
+      'depends': ['setImmediate']
+    },
+    'jQuery': {
+      'path': 'http://cdn.intermine.org/js/jquery/1.7.2/jquery.min.js',
+      'depends': ['JSON']
+    },
+    '_': {
+      'path': 'http://cdn.intermine.org/js/underscore.js/1.3.3/underscore-min.js',
+      'depends': ['JSON']
+    },
+    'Backbone': {
+      'path': 'http://cdn.intermine.org/js/backbone.js/0.9.2/backbone-min.js',
+      'depends': ['jQuery', '_']
     }
   }
 });
