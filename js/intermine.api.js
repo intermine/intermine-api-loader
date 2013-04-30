@@ -137,6 +137,7 @@
         if (!name) {
           name = path.split('/').pop();
         }
+        library[i].name = name;
         o[type][name] = {
           'path': path,
           'check': name

@@ -100,6 +100,9 @@ intermine.load = (library, version, cb) ->
             # Name is strictly not provided, so make one up from path if needed.
             name = path.split('/').pop() unless name
 
+            # Save this on us so we can use it after us.
+            library[i].name = name
+
             # Save this one.
             o[type][name] = 'path': path, 'check': name
 
