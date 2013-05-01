@@ -4,6 +4,9 @@ root = this
 # Export.
 root.intermine = intermine = root.intermine or {}
 
+# One way to access globals.
+window = global or root
+
 # Only allow one instance.
 return if intermine.load
 
@@ -66,7 +69,7 @@ load = (resources, type, cb) ->
         # Do we have a sync function check?
         if (check and typeof check is 'function' and check()) or
             # Let us attempt a check on the window then.
-            (root[key]? and (typeof root[key] is 'function' or 'object'))
+            (window[key]? and (typeof window[key] is 'function' or 'object'))
                 # Add an immediate callback to the object :).
                 return obj[key] = (cb) -> cb null
 

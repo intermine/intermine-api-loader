@@ -1,5 +1,5 @@
 (function() {
-  var intermine, load, loading, paths, root, _auto, _contains, _each, _keys, _map, _reduce, _setImmediate,
+  var intermine, load, loading, paths, root, window, _auto, _contains, _each, _keys, _map, _reduce, _setImmediate,
     __slice = [].slice;
 
   paths = {
@@ -201,6 +201,8 @@
 
   root.intermine = intermine = root.intermine || {};
 
+  window = global || root;
+
   if (intermine.load) {
     return;
   }
@@ -263,7 +265,7 @@
       if (!path) {
         return exit("Library `path` not provided for " + key);
       }
-      if ((check && typeof check === 'function' && check()) || ((root[key] != null) && (typeof root[key] === 'function' || 'object'))) {
+      if ((check && typeof check === 'function' && check()) || ((window[key] != null) && (typeof window[key] === 'function' || 'object'))) {
         return obj[key] = function(cb) {
           return cb(null);
         };

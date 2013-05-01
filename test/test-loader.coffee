@@ -173,8 +173,25 @@ module.exports =
             assert.equal err, 'Circular dependencies detected for `F,A,B,J,I`'
             done()
 
-    # 'Do not load resources on the `window`': (done) ->
-    #     done()
+    'Do not load resources on the `window`': (done) ->
+        order = []
+        # Replace with our custom async-loader script.
+        intermine.loader = (path, type, cb) ->
+            order.push path
+            process.nextTick cb
+
+        # Set an object on root.
+        global.globalls = {}
+
+        intermine.load
+            'js':
+                'globalls': { 'path': 'globalls' }
+                'A': { 'path': 'A' }
+        , (err) ->
+            assert.ifError err
+            assert.deepEqual order, [ 'A' ]
+            delete global.globalls
+            done()
 
     # 'Do not load resources that pass a `check`': (done) ->
     #     done()
