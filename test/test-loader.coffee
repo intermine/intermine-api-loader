@@ -17,6 +17,7 @@ module.exports =
             load({ 'test': { 'A': { 'path': 'A1' } } })
             load({ 'test': { 'A': { 'path': 'A2' } } })
         ], (err, results) ->
+            assert.ifError err
             assert.equal i, 1, '`loader` was not called just once'
             done()
 
@@ -35,7 +36,8 @@ module.exports =
             { 'name': 'C', 'path': 'C', 'type': 'js', 'wait': true }
             { 'name': 'D', 'path': 'D', 'type': 'js', 'wait': true }
             { 'name': 'E', 'path': 'E', 'type': 'js', 'wait': true }
-        ], ->
+        ], (err) ->
+            assert.ifError err
             i++
             assert.equal i, 1, 'called back more than once'
             assert.equal order.length, 5, 'not all resources have been called'
@@ -50,7 +52,58 @@ module.exports =
 
             done()
 
-    # 'Auto-resolve dependencies among each other': (done) ->
+    'Auto-resolve dependencies among each other': (done) ->
+        order = []
+
+        # Replace with our custom async-loader script.
+        intermine.loader = (path, type, cb) ->
+            order.push path
+            process.nextTick cb
+
+        intermine.load
+            'js':
+                'D': { 'path': 'D', 'depends': [ 'C' ] }
+                'A': { 'path': 'A' }
+                'C': { 'path': 'C', 'depends': [ 'A' ] }
+                'B': { 'path': 'B' }
+        , (err) ->
+            assert.ifError err
+
+            # Check the order.
+            [ A, B, C, D ] = order
+            if A is 'B' then [ A, B ] = [ B, A ] # with the first two we can't be sure (we can)
+
+            # Now we want to equal baby.
+            for [ actual, expected ] in [ [ A, 'A' ], [ B, 'B' ], [ C, 'C' ], [ D, 'D' ] ]
+                assert.equal actual, expected
+
+            done()
+
+    'Depending on a non-existent entry': (done) ->
+        # Replace with our custom async-loader script.
+        intermine.loader = (path, type, cb) -> process.nextTick cb
+
+        intermine.load
+            'js':
+                'B': { 'path': 'B', 'depends': [ 'X' ] }
+                'A': { 'path': 'A' }
+        , (err) ->
+            assert.equal err, 'Unrecognized dependency `X`'
+            done()
+
+    'Depending on a non-string entry': (done) ->
+        # Replace with our custom async-loader script.
+        intermine.loader = (path, type, cb) -> process.nextTick cb
+
+        intermine.load
+            'js':
+                'B': { 'path': 'B', 'depends': [ 'A', -> ] }
+                'A': { 'path': 'A' }
+        , (err) ->
+            assert.equal err, 'Unrecognized dependency `function () {}`'
+            done()
+
+    # 'A cyclical dependency hell': (done) ->
     #     done()
 
     # 'Named resource loading (deprecated)': (done) ->

@@ -65,9 +65,7 @@
         script = document.createElement('script');
         script.src = path;
         script.type = 'text/javascript';
-        if (cb) {
-          setCallback(script, cb);
-        }
+        setCallback(script, cb);
         return document.getElementsByTagName('head')[0].appendChild(script);
       case 'css':
         sheet = document.createElement('link');
@@ -75,28 +73,36 @@
         sheet.type = 'text/css';
         sheet.href = path;
         document.getElementsByTagName('head')[0].appendChild(sheet);
-        return cb();
+        return cb(null);
       default:
-        throw "Unrecognized type `" + type + "`";
+        return cb("Unrecognized type `" + type + "`");
     }
   };
 
   loading = {};
 
   load = function(resources, type, cb) {
-    var key, obj, value, _fn;
+    var exit, exited, key, obj, value, _fn;
 
+    exited = false;
+    exit = function(err) {
+      exited = true;
+      return cb(err);
+    };
     obj = {};
     _fn = function(key, value) {
-      var check, dep, depends, path;
+      var check, dep, depends, path, _i, _len;
 
+      if (exited) {
+        return;
+      }
       path = value.path, check = value.check, depends = value.depends;
       if (!path) {
-        throw "Library `path` not provided for " + key;
+        return exit("Library `path` not provided for " + key);
       }
       if ((check && typeof check === 'function' && check()) || ((root[key] != null) && (typeof root[key] === 'function' || 'object'))) {
         return obj[key] = function(cb) {
-          return cb();
+          return cb(null);
         };
       }
       if (loading[key]) {
@@ -105,9 +111,9 @@
 
           return (isDone = function() {
             if (!loading[key]) {
-              return setTimeout(isDone, 0);
+              return async.setImmediate(isDone);
             } else {
-              return cb();
+              return cb(null);
             }
           })();
         };
@@ -116,21 +122,17 @@
       obj[key] = function(cb) {
         return intermine.loader(path, type, function() {
           delete loading[key];
-          return cb();
+          return cb(null);
         });
       };
       if (depends && depends instanceof Array) {
-        if (!(function() {
-          var _i, _len, _results;
-
-          _results = [];
-          for (_i = 0, _len = depends.length; _i < _len; _i++) {
-            dep = depends[_i];
-            _results.push(resources[dep] != null);
+        for (_i = 0, _len = depends.length; _i < _len; _i++) {
+          dep = depends[_i];
+          if (!(typeof dep !== 'string' || (resources[dep] == null))) {
+            continue;
           }
-          return _results;
-        })()) {
-          throw "Unrecognized dependency `" + dep + "`";
+          delete loading[key];
+          return exit("Unrecognized dependency `" + dep + "`");
         }
         return obj[key] = depends.concat(obj[key]);
       }
@@ -139,27 +141,34 @@
       value = resources[key];
       _fn(key, value);
     }
-    return async.auto(obj, function(err, results) {
+    return !exited && async.auto(obj, function(err, results) {
       if (err) {
-        throw err;
+        return cb(err);
+      } else {
+        return cb(null);
       }
-      return cb();
     });
   };
 
   intermine.load = function(library, version, cb) {
-    var handle, i, key, name, o, path, resources, type, wait, _ref;
+    var exited, handle, i, key, name, o, path, resources, type, wait, _ref;
 
+    if (cb == null) {
+      cb = function() {};
+    }
     if (typeof version === 'function') {
       cb = version;
       version = 'latest';
     }
+    if (typeof cb !== 'function') {
+      return;
+    }
     if (typeof library === 'string') {
       if (!paths[library]) {
-        throw "Unknown library `" + library + "`";
+        return cb("Unknown library `" + library + "`");
       }
       if (!(path = paths[library][version])) {
-        throw "Unknown `" + library + "` version " + version;
+        return cb("Unknown `" + library + "` version " + version);
       }
       o = {};
       o["intermine." + library] = {
@@ -175,10 +184,10 @@
       for (i in library) {
         _ref = library[i], name = _ref.name, path = _ref.path, type = _ref.type, wait = _ref.wait;
         if (!(path || type)) {
-          throw 'Library `path` or `type` not provided';
+          return cb('Library `path` or `type` not provided');
         }
         if (type !== 'css' && type !== 'js') {
-          throw "Library type `" + type + "` not recognized";
+          return cb("Library type `" + type + "` not recognized");
         }
         if (!name) {
           name = path.split('/').pop();
@@ -195,9 +204,17 @@
     }
     if (typeof library === 'object') {
       i = _keys(library).length;
-      handle = function() {
+      exited = false;
+      handle = function(err) {
+        if (exited) {
+          return;
+        }
+        if (err) {
+          exited = true;
+          return cb(err);
+        }
         if (i-- && !!!i) {
-          return cb();
+          return cb(null);
         }
       };
       return (function() {
@@ -211,7 +228,7 @@
         return _results;
       })();
     }
-    throw 'Unrecognized input';
+    return cb('Unrecognized input');
   };
 
   async = {};

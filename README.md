@@ -2,6 +2,8 @@
 
 Simplify loading of JS and CSS dependencies.
 
+[ ![Codeship Status for intermine/intermine-api-loader](https://www.codeship.io/projects/3543c3f0-9498-0130-d02b-2af0f23c7f6c/status?branch=master)](https://www.codeship.io/projects/3085)
+
 ## Quickstart
 
 Include `intermine.api.js` on a page then resolve dependencies as follows:
@@ -66,3 +68,4 @@ $ make test
 5. If two requests to load dependency X come at the same time we make only one load and use cache for the second.
 6. CSS is a bit random so we just load whatever you ask for not waiting for anything.
 7. Keys `load` and `loader` are taken over by us on the `intermine` namespace.
+8. **The last parameter of `load` is a callback. Use it, it might respond with an error.**

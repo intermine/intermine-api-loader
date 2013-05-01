@@ -23,7 +23,7 @@ intermine.loader = (path, type='js', cb) ->
             script = document.createElement 'script'
             script.src = path
             script.type = 'text/javascript'
-            setCallback(script, cb) if cb
+            setCallback(script, cb)
             document.getElementsByTagName('head')[0].appendChild(script)
 
         when 'css'
@@ -33,31 +33,42 @@ intermine.loader = (path, type='js', cb) ->
             sheet.href = path
             document.getElementsByTagName('head')[0].appendChild(sheet)
             # Immediate callback, do not wait for anything.
-            cb()
+            cb null
 
         else
-            throw "Unrecognized type `#{type}`"
+            cb "Unrecognized type `#{type}`"
 
 # Dependencies that are being loaded are put here.
 loading = {}
 
 # A new auto-loader.
 load = (resources, type, cb) ->
+    # Have we exited already?
+    exited = false
+    exit = (err) ->
+        exited = true
+        cb err
+    
     # Create the object for async.
     obj = {}
+    
+    # Check & format the resources.
     for key, value of resources then do (key, value) ->
+        # Skip if an error has happened.
+        return if exited
+
         # Expand in our scope.
         { path, check, depends } = value
 
         # Check we have the URL path.
-        throw "Library `path` not provided for #{key}" unless path
+        return exit "Library `path` not provided for #{key}" unless path
 
         # Do we have a sync function check?
         if (check and typeof check is 'function' and check()) or
             # Let us attempt a check on the window then.
             (root[key]? and (typeof root[key] is 'function' or 'object'))
                 # Add an immediate callback to the object :).
-                return obj[key] = (cb) -> cb()
+                return obj[key] = (cb) -> cb null
 
         # Maybe this library is being loaded right now elsewhere on the page?
         if loading[key]
@@ -66,9 +77,9 @@ load = (resources, type, cb) ->
                 # Wait for the library to be loaded.
                 do isDone = ->
                     unless loading[key]
-                        setTimeout isDone, 0
+                        async.setImmediate isDone # works in node & browser
                     else
-                        cb() # finally the dependency got loaded
+                        cb null # finally the dependency got loaded
 
         # This dep is registered for loading.
         loading[key] = true
@@ -77,32 +88,36 @@ load = (resources, type, cb) ->
         obj[key] = (cb) ->
             intermine.loader path, type, ->
                 delete loading[key] # has loaded...
-                cb()
+                cb null
 
         # Do we have dependencies?
         if depends and depends instanceof Array
             # Make sure we recognize them.
-            ( throw "Unrecognized dependency `#{dep}`" unless resources[dep]? for dep in depends )
+            for dep in depends when typeof(dep) isnt 'string' or not resources[dep]?
+                delete loading[key] # no more soup for you!
+                return exit "Unrecognized dependency `#{dep}`"
+            
             # Append our loader after the deps.
             return obj[key] = depends.concat obj[key]
 
-    # Pass to async to work it all out.
-    async.auto obj, (err, results) ->
-        throw err if err
-        cb()
+    # Pass to async to work it all out if we have not died already.
+    ( not exited and async.auto obj, (err, results) -> if err then cb err else cb null )
 
 # Public interface that converts various types of input into the standard.
-intermine.load = (library, version, cb) ->
+intermine.load = (library, version, cb=->) ->
     # Has a version been passed in?
     if typeof version is 'function'
         cb = version
         version = 'latest'
 
+    # No callback? Is this the 80's?
+    return if typeof cb isnt 'function'
+
     # If library is a string and we have version defined, we are a "named" resource.
     if typeof library is 'string'
         # Do we know this library?
-        throw "Unknown library `#{library}`" unless paths[library]
-        throw "Unknown `#{library}` version #{version}" unless (path = paths[library][version])
+        return cb "Unknown library `#{library}`" unless paths[library]
+        return cb "Unknown `#{library}` version #{version}" unless (path = paths[library][version])
 
         o = {}
         o["intermine.#{library}"] = 'path': path
@@ -116,8 +131,8 @@ intermine.load = (library, version, cb) ->
 
         # Explode the config.
         for i, { name, path, type, wait } of library
-            throw 'Library `path` or `type` not provided' unless path or type
-            throw "Library type `#{type}` not recognized" if type not in [ 'css', 'js' ]
+            return cb 'Library `path` or `type` not provided' unless path or type
+            return cb "Library type `#{type}` not recognized" if type not in [ 'css', 'js' ]
             
             # Name is strictly not provided, so make one up from path if needed.
             name = path.split('/').pop() unless name
@@ -140,10 +155,19 @@ intermine.load = (library, version, cb) ->
         # We are going to be loading this many...
         i = _keys(library).length
         
+        # Have we exited already?
+        exited = false
+
         # Call back when all is done padre.
-        handle = -> return cb() if ( i-- and not !!i )
+        handle = (err) ->
+            return if exited # late to the party?
+            if err # you broken boy
+                exited = true
+                return cb err
+            
+            return cb null if ( i-- and not !!i ) # are we there yet?
 
         # Launch them all.
         return ( load resources, key, handle for key, resources of library )
 
-    throw 'Unrecognized input'
+    cb 'Unrecognized input'
