@@ -1,5 +1,6 @@
 (function() {
-  var intermine, load, loading, paths, root, _auto, _contains, _each, _keys, _map, _reduce, _setImmediate;
+  var intermine, load, loading, paths, root, _auto, _contains, _each, _keys, _map, _reduce, _setImmediate,
+    __slice = [].slice;
 
   paths = {
     "widgets": {
@@ -352,18 +353,17 @@
     });
   };
 
-  intermine.load = function(library, version, cb) {
-    var exited, handle, i, key, name, o, path, resources, type, wait, _ref;
+  intermine.load = function() {
+    var args, cb, exited, handle, i, key, library, name, o, path, resources, type, version, wait, _ref;
 
-    if (cb == null) {
-      cb = function() {};
-    }
-    if (typeof version === 'function') {
-      cb = version;
-      version = 'latest';
+    library = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
+    cb = arguments.length === 1 ? library : args.pop();
+    version = 'latest';
+    if (typeof args[0] === 'string') {
+      version = args[0];
     }
     if (typeof cb !== 'function') {
-      return;
+      cb = function() {};
     }
     if (typeof library === 'string') {
       if (!paths[library]) {

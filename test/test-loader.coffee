@@ -4,21 +4,36 @@ async         = require 'async'
 { intermine } = require '../js/intermine.api.js'
 
 module.exports =  
-    'Same resource in parallel': (done) ->
-        i = 0
+    'Named resource loading (deprecated)': (done) ->
         # Replace with our custom async-loader script.
         intermine.loader = (path, type, cb) ->
-            i++
+            assert.equal path, 'http://cdn.intermine.org/js/intermine/widgets/1.0.0/intermine.widgets.js'
+            assert.equal type, 'js'
             process.nextTick cb
 
-        load = (deps) -> (cb) -> intermine.load deps, cb
-
-        async.parallel [
-            load({ 'test': { 'A': { 'path': 'A1' } } })
-            load({ 'test': { 'A': { 'path': 'A2' } } })
-        ], (err, results) ->
+        intermine.load 'widgets', '1.0.0', (err) ->
             assert.ifError err
-            assert.equal i, 1, '`loader` was not called just once'
+            done()
+
+    'Named resource loading wo/ version (deprecated)': (done) ->
+        # Replace with our custom async-loader script.
+        intermine.loader = (path, type, cb) ->
+            assert.equal path, 'http://cdn.intermine.org/js/intermine/widgets/latest/intermine.widgets.js'
+            assert.equal type, 'js'
+            process.nextTick cb
+
+        intermine.load 'widgets', (err) ->
+            assert.ifError err
+            done()
+
+    'Non existent named resource loading (deprecated)': (done) ->
+        # Replace with our custom async-loader script.
+        intermine.loader = (path, type, cb) ->
+            console.log path, type
+            process.nextTick cb
+
+        intermine.load 'matrix', '1.0.0', (err) ->
+            assert.equal err, 'Unknown library `matrix`'
             done()
 
     'Array-style loading (deprecated)': (done) ->
@@ -50,6 +65,33 @@ module.exports =
             for [ actual, expected ] in [ [ A, 'A' ], [ B, 'B' ], [ C, 'C' ], [ D, 'D' ], [ E, 'E' ] ]
                 assert.equal actual, expected
 
+            done()
+
+    'Just plain weird input': (done) ->
+        # Replace with our custom async-loader script.
+        intermine.loader = (path, type, cb) ->
+            assert false, 'should have skipped'
+            process.nextTick cb
+
+        intermine.load (err) ->
+            assert.equal err, 'Unrecognized input'
+            done()
+
+    'Same resource in parallel': (done) ->
+        i = 0
+        # Replace with our custom async-loader script.
+        intermine.loader = (path, type, cb) ->
+            i++
+            process.nextTick cb
+
+        load = (deps) -> (cb) -> intermine.load deps, cb
+
+        async.parallel [
+            load({ 'test': { 'A': { 'path': 'A1' } } })
+            load({ 'test': { 'A': { 'path': 'A2' } } })
+        ], (err, results) ->
+            assert.ifError err
+            assert.equal i, 1, '`loader` was not called just once'
             done()
 
     'Auto-resolve dependencies among each other': (done) ->
@@ -130,9 +172,6 @@ module.exports =
         , (err) ->
             assert.equal err, 'Circular dependencies detected for `F,A,B,J,I`'
             done()
-
-    # 'Named resource loading (deprecated)': (done) ->
-    #     done()
 
     # 'Do not load resources on the `window`': (done) ->
     #     done()

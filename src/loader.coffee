@@ -132,14 +132,17 @@ load = (resources, type, cb) ->
     _auto obj, (err, results) -> if err then cb err else cb null
 
 # Public interface that converts various types of input into the standard.
-intermine.load = (library, version, cb=->) ->
-    # Has a version been passed in?
-    if typeof version is 'function'
-        cb = version
-        version = 'latest'
+intermine.load = (library, args...) ->
+    # Callback always goes last.
+    cb = if arguments.length is 1 then library else args.pop()
+    # By default we have latest version for string libraries.
+    version = 'latest'
 
-    # No callback? Is this the 80's?
-    return if typeof cb isnt 'function'
+    # Has a version been passed in?
+    if typeof args[0] is 'string' then version = args[0]
+
+    # Old loaders might not have a callback defined, go plain.
+    if typeof cb isnt 'function' then cb = ->
 
     # If library is a string and we have version defined, we are a "named" resource.
     if typeof library is 'string'
