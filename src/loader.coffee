@@ -67,8 +67,8 @@ load = (resources, type, cb) ->
         return exit "Library `path` not provided for #{key}" unless path
 
         # Do we have a sync function check?
-        if (check and typeof check is 'function' and check()) or
-            # Let us attempt a check on the window then.
+        if !!(check and typeof(check) is 'function' and check()) or
+            # Let us attempt a check on the `window` then.
             (window[key]? and (typeof window[key] is 'function' or 'object'))
                 # Add an immediate callback to the object :).
                 return obj[key] = (cb) -> cb null
@@ -132,7 +132,7 @@ load = (resources, type, cb) ->
         return exit "Circular dependencies detected for `#{err}`"
 
     # Pass to async to work it all out.
-    _auto obj, (err, results) -> if err then cb err else cb null
+    _auto obj, (err) -> if err then cb err else cb null
 
 # Public interface that converts various types of input into the standard.
 intermine.load = (library, args...) ->

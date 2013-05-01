@@ -174,10 +174,9 @@ module.exports =
             done()
 
     'Do not load resources on the `window`': (done) ->
-        order = []
         # Replace with our custom async-loader script.
         intermine.loader = (path, type, cb) ->
-            order.push path
+            assert.equal path, 'A'
             process.nextTick cb
 
         # Set an object on root.
@@ -189,9 +188,19 @@ module.exports =
                 'A': { 'path': 'A' }
         , (err) ->
             assert.ifError err
-            assert.deepEqual order, [ 'A' ]
             delete global.globalls
             done()
 
-    # 'Do not load resources that pass a `check`': (done) ->
-    #     done()
+    'Do not load resources that pass a `check`': (done) ->
+        # Replace with our custom async-loader script.
+        intermine.loader = (path, type, cb) ->
+            assert.equal path, 'A'
+            process.nextTick cb
+
+        intermine.load
+            'js':
+                'B': { 'path': 'B', 'check': -> true }
+                'A': { 'path': 'A', 'depends': [ 'B' ] }
+        , (err) ->
+            assert.ifError err
+            done()

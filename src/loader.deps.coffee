@@ -71,10 +71,11 @@ _auto = (tasks, callback) ->
     _each keys, (k) ->
         task = (if (tasks[k] instanceof Function) then [tasks[k]] else tasks[k])
         
+        # Call this when task has finished.
         taskCallback = (err) ->
             args = Array::slice.call(arguments, 1)
             args = args[0] if args.length <= 1
-            if err
+            if err # trouble in paradise?
                 safeResults = {}
                 _each _keys(results), (rkey) ->
                     safeResults[rkey] = results[rkey]
@@ -89,13 +90,14 @@ _auto = (tasks, callback) ->
                 _setImmediate taskComplete
 
         requires = task.slice(0, Math.abs(task.length - 1)) or []
-        
+
         ready = ->
             _reduce(requires, (a, x) ->
                 a and results.hasOwnProperty(x)
             , true) and not results.hasOwnProperty(k)
 
         if ready()
+            # Call the next task.
             task[task.length - 1] taskCallback, results
         else
             listener = ->

@@ -265,7 +265,7 @@
       if (!path) {
         return exit("Library `path` not provided for " + key);
       }
-      if ((check && typeof check === 'function' && check()) || ((window[key] != null) && (typeof window[key] === 'function' || 'object'))) {
+      if (!!(check && typeof check === 'function' && check()) || ((window[key] != null) && (typeof window[key] === 'function' || 'object'))) {
         return obj[key] = function(cb) {
           return cb(null);
         };
@@ -346,7 +346,7 @@
       }
       return exit("Circular dependencies detected for `" + err + "`");
     }
-    return _auto(obj, function(err, results) {
+    return _auto(obj, function(err) {
       if (err) {
         return cb(err);
       } else {
