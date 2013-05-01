@@ -16,7 +16,7 @@ intermine.loader = (path, type='js', cb) ->
             state = tag.readyState
             if state is 'complete' or state is 'loaded'
                 tag.onreadystatechange = null
-                root.setTimeout cb, 0
+                async.setImmediate cb
     
     switch type
         when 'js'

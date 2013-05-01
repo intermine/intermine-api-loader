@@ -34,6 +34,155 @@
     }
   };
 
+  async = {};
+
+  _each = function(arr, iterator) {
+    var key, value, _results;
+
+    if (arr.forEach) {
+      return arr.forEach(iterator);
+    }
+    _results = [];
+    for (key in arr) {
+      value = arr[key];
+      _results.push(iterator(value, key, arr));
+    }
+    return _results;
+  };
+
+  _map = function(arr, iterator) {
+    var results;
+
+    if (arr.map) {
+      return arr.map(iterator);
+    }
+    results = [];
+    _each(arr, function(x, i, a) {
+      return results.push(iterator(x, i, a));
+    });
+    return results;
+  };
+
+  _reduce = function(arr, iterator, memo) {
+    if (arr.reduce) {
+      return arr.reduce(iterator, memo);
+    }
+    _each(arr, function(x, i, a) {
+      return memo = iterator(memo, x, i, a);
+    });
+    return memo;
+  };
+
+  _keys = function(obj) {
+    var k, keys;
+
+    if (Object.keys) {
+      return Object.keys(obj);
+    }
+    keys = [];
+    for (k in obj) {
+      if (obj.hasOwnProperty(k)) {
+        keys.push(k);
+      }
+    }
+    return keys;
+  };
+
+  if (typeof process === 'undefined' || !process.nextTick) {
+    if (typeof setImmediate === 'function') {
+      async.setImmediate = setImmediate;
+    } else {
+      async.setImmediate = function(fn) {
+        return setTimeout(fn, 0);
+      };
+    }
+  } else {
+    if (typeof setImmediate !== 'undefined') {
+      async.setImmediate = setImmediate;
+    } else {
+      async.setImmediate = process.nextTick;
+    }
+  }
+
+  async.auto = function(tasks, callback) {
+    var addListener, keys, listeners, removeListener, results, taskComplete;
+
+    callback = callback || function() {};
+    keys = _keys(tasks);
+    if (!keys.length) {
+      return callback(null);
+    }
+    results = {};
+    listeners = [];
+    addListener = function(fn) {
+      return listeners.unshift(fn);
+    };
+    removeListener = function(fn) {
+      var i, listener;
+
+      for (i in listeners) {
+        listener = listeners[i];
+        if (listener === fn) {
+          listeners.splice(i, 1);
+          return;
+        }
+      }
+    };
+    taskComplete = function() {
+      return _each(listeners.slice(0), function(fn) {
+        return fn();
+      });
+    };
+    addListener(function() {
+      if (_keys(results).length === keys.length) {
+        callback(null, results);
+        return callback = function() {};
+      }
+    });
+    return _each(keys, function(k) {
+      var listener, ready, requires, task, taskCallback;
+
+      task = (tasks[k] instanceof Function ? [tasks[k]] : tasks[k]);
+      taskCallback = function(err) {
+        var args, safeResults;
+
+        args = Array.prototype.slice.call(arguments, 1);
+        if (args.length <= 1) {
+          args = args[0];
+        }
+        if (err) {
+          safeResults = {};
+          _each(_keys(results), function(rkey) {
+            return safeResults[rkey] = results[rkey];
+          });
+          safeResults[k] = args;
+          callback(err, safeResults);
+          return callback = function() {};
+        } else {
+          results[k] = args;
+          return async.setImmediate(taskComplete);
+        }
+      };
+      requires = task.slice(0, Math.abs(task.length - 1)) || [];
+      ready = function() {
+        return _reduce(requires, function(a, x) {
+          return a && results.hasOwnProperty(x);
+        }, true) && !results.hasOwnProperty(k);
+      };
+      if (ready()) {
+        return task[task.length - 1](taskCallback, results);
+      } else {
+        listener = function() {
+          if (ready()) {
+            removeListener(listener);
+            return task[task.length - 1](taskCallback, results);
+          }
+        };
+        return addListener(listener);
+      }
+    });
+  };
+
   root = this;
 
   root.intermine = intermine = root.intermine || {};
@@ -56,7 +205,7 @@
         state = tag.readyState;
         if (state === 'complete' || state === 'loaded') {
           tag.onreadystatechange = null;
-          return root.setTimeout(cb, 0);
+          return async.setImmediate(cb);
         }
       };
     };
@@ -229,155 +378,6 @@
       })();
     }
     return cb('Unrecognized input');
-  };
-
-  async = {};
-
-  _each = function(arr, iterator) {
-    var key, value, _results;
-
-    if (arr.forEach) {
-      return arr.forEach(iterator);
-    }
-    _results = [];
-    for (key in arr) {
-      value = arr[key];
-      _results.push(iterator(value, key, arr));
-    }
-    return _results;
-  };
-
-  _map = function(arr, iterator) {
-    var results;
-
-    if (arr.map) {
-      return arr.map(iterator);
-    }
-    results = [];
-    _each(arr, function(x, i, a) {
-      return results.push(iterator(x, i, a));
-    });
-    return results;
-  };
-
-  _reduce = function(arr, iterator, memo) {
-    if (arr.reduce) {
-      return arr.reduce(iterator, memo);
-    }
-    _each(arr, function(x, i, a) {
-      return memo = iterator(memo, x, i, a);
-    });
-    return memo;
-  };
-
-  _keys = function(obj) {
-    var k, keys;
-
-    if (Object.keys) {
-      return Object.keys(obj);
-    }
-    keys = [];
-    for (k in obj) {
-      if (obj.hasOwnProperty(k)) {
-        keys.push(k);
-      }
-    }
-    return keys;
-  };
-
-  if (typeof process === 'undefined' || !process.nextTick) {
-    if (typeof setImmediate === 'function') {
-      async.setImmediate = setImmediate;
-    } else {
-      async.setImmediate = function(fn) {
-        return setTimeout(fn, 0);
-      };
-    }
-  } else {
-    if (typeof setImmediate !== 'undefined') {
-      async.setImmediate = setImmediate;
-    } else {
-      async.setImmediate = process.nextTick;
-    }
-  }
-
-  async.auto = function(tasks, callback) {
-    var addListener, keys, listeners, removeListener, results, taskComplete;
-
-    callback = callback || function() {};
-    keys = _keys(tasks);
-    if (!keys.length) {
-      return callback(null);
-    }
-    results = {};
-    listeners = [];
-    addListener = function(fn) {
-      return listeners.unshift(fn);
-    };
-    removeListener = function(fn) {
-      var i, listener;
-
-      for (i in listeners) {
-        listener = listeners[i];
-        if (listener === fn) {
-          listeners.splice(i, 1);
-          return;
-        }
-      }
-    };
-    taskComplete = function() {
-      return _each(listeners.slice(0), function(fn) {
-        return fn();
-      });
-    };
-    addListener(function() {
-      if (_keys(results).length === keys.length) {
-        callback(null, results);
-        return callback = function() {};
-      }
-    });
-    return _each(keys, function(k) {
-      var listener, ready, requires, task, taskCallback;
-
-      task = (tasks[k] instanceof Function ? [tasks[k]] : tasks[k]);
-      taskCallback = function(err) {
-        var args, safeResults;
-
-        args = Array.prototype.slice.call(arguments, 1);
-        if (args.length <= 1) {
-          args = args[0];
-        }
-        if (err) {
-          safeResults = {};
-          _each(_keys(results), function(rkey) {
-            return safeResults[rkey] = results[rkey];
-          });
-          safeResults[k] = args;
-          callback(err, safeResults);
-          return callback = function() {};
-        } else {
-          results[k] = args;
-          return async.setImmediate(taskComplete);
-        }
-      };
-      requires = task.slice(0, Math.abs(task.length - 1)) || [];
-      ready = function() {
-        return _reduce(requires, function(a, x) {
-          return a && results.hasOwnProperty(x);
-        }, true) && !results.hasOwnProperty(k);
-      };
-      if (ready()) {
-        return task[task.length - 1](taskCallback, results);
-      } else {
-        listener = function() {
-          if (ready()) {
-            removeListener(listener);
-            return task[task.length - 1](taskCallback, results);
-          }
-        };
-        return addListener(listener);
-      }
-    });
   };
 
 }).call(this);

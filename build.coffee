@@ -30,11 +30,12 @@ async.waterfall [ (cb) ->
     async.parallel ( compile f for f in [ './src/loader.coffee', './src/loader.deps.coffee' ] ), (err, results) ->
         return cb err if err
 
-        # Swap order?
-        if results[0][0] is 'loader.coffee' then results = [ results[1], results[0] ]
+        # Swap?
+        [ a, b ] = results
+        ( a[0] is './src/loader.coffee' and [ b, a ] = [ a, b ] )
 
         # Add paths and join.
-        merged = [ 'paths = ' + paths, results[0].pop(), results[1].pop() ].join('\n')
+        merged = [ 'paths = ' + paths, a[1], b[1] ].join('\n')
 
         # Compile please, with closure.
         try
