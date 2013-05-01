@@ -1,5 +1,5 @@
 (function() {
-  var async, intermine, load, loading, paths, root, _each, _keys, _map, _reduce;
+  var intermine, load, loading, paths, root, _auto, _contains, _each, _keys, _map, _reduce, _setImmediate;
 
   paths = {
     "widgets": {
@@ -34,7 +34,21 @@
     }
   };
 
-  async = {};
+  if (typeof process === 'undefined' || !process.nextTick) {
+    if (typeof setImmediate === 'function') {
+      _setImmediate = setImmediate;
+    } else {
+      _setImmediate = function(fn) {
+        return setTimeout(fn, 0);
+      };
+    }
+  } else {
+    if (typeof setImmediate !== 'undefined') {
+      _setImmediate = setImmediate;
+    } else {
+      _setImmediate = process.nextTick;
+    }
+  }
 
   _each = function(arr, iterator) {
     var key, value, _results;
@@ -88,23 +102,22 @@
     return keys;
   };
 
-  if (typeof process === 'undefined' || !process.nextTick) {
-    if (typeof setImmediate === 'function') {
-      async.setImmediate = setImmediate;
-    } else {
-      async.setImmediate = function(fn) {
-        return setTimeout(fn, 0);
-      };
-    }
-  } else {
-    if (typeof setImmediate !== 'undefined') {
-      async.setImmediate = setImmediate;
-    } else {
-      async.setImmediate = process.nextTick;
-    }
-  }
+  _contains = function(arr, item) {
+    var value, _i, _len;
 
-  async.auto = function(tasks, callback) {
+    if ([].indexOf) {
+      return arr.indexOf(item) >= 0;
+    }
+    for (_i = 0, _len = arr.length; _i < _len; _i++) {
+      value = arr[_i];
+      if (value === item) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  _auto = function(tasks, callback) {
     var addListener, keys, listeners, removeListener, results, taskComplete;
 
     callback = callback || function() {};
@@ -160,7 +173,7 @@
           return callback = function() {};
         } else {
           results[k] = args;
-          return async.setImmediate(taskComplete);
+          return _setImmediate(taskComplete);
         }
       };
       requires = task.slice(0, Math.abs(task.length - 1)) || [];
@@ -205,7 +218,7 @@
         state = tag.readyState;
         if (state === 'complete' || state === 'loaded') {
           tag.onreadystatechange = null;
-          return async.setImmediate(cb);
+          return _setImmediate(cb);
         }
       };
     };
@@ -231,7 +244,7 @@
   loading = {};
 
   load = function(resources, type, cb) {
-    var exit, exited, key, obj, value, _fn;
+    var branch, err, exit, exited, key, obj, seen, value, _fn, _i, _len, _ref;
 
     exited = false;
     exit = function(err) {
@@ -260,7 +273,7 @@
 
           return (isDone = function() {
             if (!loading[key]) {
-              return async.setImmediate(isDone);
+              return _setImmediate(isDone);
             } else {
               return cb(null);
             }
@@ -290,7 +303,47 @@
       value = resources[key];
       _fn(key, value);
     }
-    return !exited && async.auto(obj, function(err, results) {
+    if (exited) {
+      return;
+    }
+    err = [];
+    for (key in obj) {
+      value = obj[key];
+      if (!(value instanceof Array)) {
+        continue;
+      }
+      seen = {};
+      (branch = function(key) {
+        var i, val, _i, _ref, _results;
+
+        if (typeof key !== 'string') {
+          return;
+        }
+        if (seen[key] != null) {
+          if (!_contains(err, key)) {
+            return err.push(key);
+          }
+        } else {
+          seen[key] = true;
+          if ((val = obj[key]) instanceof Array) {
+            _results = [];
+            for (i = _i = 0, _ref = val.length - 1; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
+              _results.push(branch(val[i]));
+            }
+            return _results;
+          }
+        }
+      })(key);
+    }
+    if (!!err.length) {
+      _ref = _keys(obj);
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        key = _ref[_i];
+        delete loading[key];
+      }
+      return exit("Circular dependencies detected for `" + err + "`");
+    }
+    return _auto(obj, function(err, results) {
       if (err) {
         return cb(err);
       } else {

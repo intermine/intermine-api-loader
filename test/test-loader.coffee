@@ -81,7 +81,9 @@ module.exports =
 
     'Depending on a non-existent entry': (done) ->
         # Replace with our custom async-loader script.
-        intermine.loader = (path, type, cb) -> process.nextTick cb
+        intermine.loader = (path, type, cb) ->
+            assert false, 'should have skipped'
+            process.nextTick cb
 
         intermine.load
             'js':
@@ -93,7 +95,9 @@ module.exports =
 
     'Depending on a non-string entry': (done) ->
         # Replace with our custom async-loader script.
-        intermine.loader = (path, type, cb) -> process.nextTick cb
+        intermine.loader = (path, type, cb) ->
+            assert false, 'should have skipped'
+            process.nextTick cb
 
         intermine.load
             'js':
@@ -103,8 +107,29 @@ module.exports =
             assert.equal err, 'Unrecognized dependency `function () {}`'
             done()
 
-    # 'A cyclical dependency hell': (done) ->
-    #     done()
+    'A circular dependency hell': (done) ->
+        # Replace with our custom async-loader script.
+        intermine.loader = (path, type, cb) ->
+            assert false, 'should have skipped'
+            process.nextTick cb
+
+        intermine.load
+            'js':
+                'F': { 'path': 'F', 'depends': [ 'G', 'H', 'I' ] }
+                'A': { 'path': 'A', 'depends': [ 'B', 'C' ] }
+                'B': { 'path': 'B', 'depends': [ 'D', 'A' ] }
+                'J': { 'path': 'J', 'depends': [ 'F', 'K' ] }
+                'C': { 'path': 'C', 'depends': [ 'E' ] }
+                'E': { 'path': 'E', 'depends': [ 'F' ] }
+                'I': { 'path': 'I', 'depends': [ 'J' ] }
+                'K': { 'path': 'K', 'depends': [ 'L' ] }
+                'D': { 'path': 'D' }
+                'G': { 'path': 'G' }
+                'H': { 'path': 'H' }
+                'L': { 'path': 'L' }
+        , (err) ->
+            assert.equal err, 'Circular dependencies detected for `F,A,B,J,I`'
+            done()
 
     # 'Named resource loading (deprecated)': (done) ->
     #     done()

@@ -1,14 +1,15 @@
 {
     "name": "intermine-api-loader",
     "author": "Radek <rs676@cam.ac.uk>",
-    "version": "0.3.2",
+    "version": "0.3.3",
     "private": true,
     "devDependencies": {
         "coffee-script": "1.6.2",
         "js-yaml": "2.0.5",
         "async": "0.2.7",
         "uglify-js": "2.2.5",
-        "mocha": "1.8.1"
+        "mocha": "1.8.1",
+        "winston": "0.7.1"
     },
     "scripts": {
         "test": "make test"

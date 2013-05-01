@@ -16,7 +16,7 @@ intermine.loader = (path, type='js', cb) ->
             state = tag.readyState
             if state is 'complete' or state is 'loaded'
                 tag.onreadystatechange = null
-                async.setImmediate cb
+                _setImmediate cb
     
     switch type
         when 'js'
@@ -51,7 +51,7 @@ load = (resources, type, cb) ->
     
     # Create the object for async.
     obj = {}
-    
+
     # Check & format the resources.
     for key, value of resources then do (key, value) ->
         # Skip if an error has happened.
@@ -77,7 +77,7 @@ load = (resources, type, cb) ->
                 # Wait for the library to be loaded.
                 do isDone = ->
                     unless loading[key]
-                        async.setImmediate isDone # works in node & browser
+                        _setImmediate isDone # works in node & browser
                     else
                         cb null # finally the dependency got loaded
 
@@ -100,8 +100,36 @@ load = (resources, type, cb) ->
             # Append our loader after the deps.
             return obj[key] = depends.concat obj[key]
 
-    # Pass to async to work it all out if we have not died already.
-    ( not exited and async.auto obj, (err, results) -> if err then cb err else cb null )
+    # We have not exited yet right?
+    return if exited
+
+    # Check for cicular dependencies.
+    err = []
+
+    # Only get entries that depend on each other.
+    for key, value of obj when value instanceof Array
+        seen = {} # keep track of entries we have seen
+        
+        # Resolve the dependency tree up until its leaf nodes.
+        ( branch = (key) ->
+            return if typeof key isnt 'string' # duplo check
+
+            if seen[key]? # have we seen you?
+                err.push key unless _contains err, key # do not duplicate
+            else
+                seen[key] = yes # now we have seen you
+                if (val = obj[key]) instanceof Array # do we have dependencies?
+                    for i in [0...val.length - 1] # last one is a callback fn
+                        branch val[i] # check this dependency then
+        ) key
+
+    if !!err.length
+        # Remove all keys from loading list.
+        delete loading[key] for key in _keys(obj)
+        return exit "Circular dependencies detected for `#{err}`"
+
+    # Pass to async to work it all out.
+    _auto obj, (err, results) -> if err then cb err else cb null
 
 # Public interface that converts various types of input into the standard.
 intermine.load = (library, version, cb=->) ->

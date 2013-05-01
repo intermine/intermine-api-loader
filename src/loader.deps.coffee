@@ -1,7 +1,18 @@
 #!/usr/bin/env coffee
-async = {}
 
-# If the browser is too old... 
+# `setImmediate` for node and the browser.
+if typeof process is 'undefined' or not (process.nextTick)
+    if typeof setImmediate is 'function'
+        _setImmediate = setImmediate
+    else
+        _setImmediate = (fn) -> setTimeout fn, 0
+else
+    if typeof setImmediate isnt 'undefined'
+        _setImmediate = setImmediate
+    else
+        _setImmediate = process.nextTick
+
+# Microsoft sucks... 
 _each = (arr, iterator) ->
     return arr.forEach(iterator) if arr.forEach
     ( iterator(value, key, arr) for key, value of arr )
@@ -26,20 +37,13 @@ _keys = (obj) ->
         keys.push k if obj.hasOwnProperty(k)
     keys
 
-# setImmediate for node and browser.
-if typeof process is 'undefined' or not (process.nextTick)
-    if typeof setImmediate is 'function'
-        async.setImmediate = setImmediate
-    else
-        async.setImmediate = (fn) -> setTimeout fn, 0
-else
-    if typeof setImmediate isnt 'undefined'
-        async.setImmediate = setImmediate
-    else
-        async.setImmediate = process.nextTick
+_contains = (arr, item) ->
+    return arr.indexOf(item) >= 0 if [].indexOf
+    ( return true for value in arr when value is item )
+    false
 
-# A mini async implementation.
-async.auto = (tasks, callback) ->
+# A mini `async.auto` implementation.
+_auto = (tasks, callback) ->
     callback = callback or ->
     keys = _keys tasks
     return callback(null) unless keys.length
@@ -82,7 +86,7 @@ async.auto = (tasks, callback) ->
                 callback = ->
             else
                 results[k] = args
-                async.setImmediate taskComplete
+                _setImmediate taskComplete
 
         requires = task.slice(0, Math.abs(task.length - 1)) or []
         

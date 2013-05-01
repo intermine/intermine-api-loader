@@ -3,6 +3,7 @@ cs      = require 'coffee-script'
 yaml    = require 'js-yaml'
 async   = require 'async'
 uglify  = require 'uglify-js'
+winston = require 'winston'
 
 # Load YAML file.
 async.waterfall [ (cb) ->
