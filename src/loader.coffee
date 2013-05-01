@@ -4,8 +4,10 @@ root = this
 # Export.
 root.intermine = intermine = root.intermine or {}
 
-# One way to access globals.
-window = global or root
+# Work in Node.
+if typeof root.window is 'undefined'
+    throw 'what kind of environment is this?' if typeof global is 'undefined'
+    root.window = global
 
 # Only allow one instance.
 return if intermine.load
@@ -69,7 +71,7 @@ load = (resources, type, cb) ->
         # Do we have a sync function check?
         if !!(check and typeof(check) is 'function' and check()) or
             # Let us attempt a check on the `window` then.
-            (window[key]? and (typeof window[key] is 'function' or 'object'))
+            (root.window[key]? and (typeof root.window[key] is 'function' or 'object'))
                 # Add an immediate callback to the object :).
                 return obj[key] = (cb) -> cb null
 
