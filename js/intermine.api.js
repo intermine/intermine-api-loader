@@ -261,16 +261,16 @@
     };
     obj = {};
     _fn = function(key, value) {
-      var check, dep, depends, path, _i, _len;
+      var dep, depends, path, test, _i, _len;
 
       if (exited) {
         return;
       }
-      path = value.path, check = value.check, depends = value.depends;
+      path = value.path, test = value.test, depends = value.depends;
       if (!path) {
         return exit("Library `path` not provided for " + key);
       }
-      if (!!(check && typeof check === 'function' && check()) || ((root.window[key] != null) && (typeof root.window[key] === 'function' || 'object'))) {
+      if (!!(test && typeof test === 'function' && test()) || ((root.window[key] != null) && (typeof root.window[key] === 'function' || 'object'))) {
         return obj[key] = function(cb) {
           return cb(null);
         };

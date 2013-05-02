@@ -63,13 +63,13 @@ load = (resources, type, cb) ->
         return if exited
 
         # Expand in our scope.
-        { path, check, depends } = value
+        { path, test, depends } = value
 
         # Check we have the URL path.
         return exit "Library `path` not provided for #{key}" unless path
 
         # Do we have a sync function check?
-        if !!(check and typeof(check) is 'function' and check()) or
+        if !!(test and typeof(test) is 'function' and test()) or
             # Let us attempt a check on the `window` then.
             (root.window[key]? and (typeof root.window[key] is 'function' or 'object'))
                 # Add an immediate callback to the object :).

@@ -191,7 +191,7 @@ module.exports =
             delete global.globalls
             done()
 
-    'Do not load resources that pass a `check`': (done) ->
+    'Do not load resources that pass a `test`': (done) ->
         # Replace with our custom async-loader script.
         intermine.loader = (path, type, cb) ->
             assert.equal path, 'A'
@@ -199,7 +199,7 @@ module.exports =
 
         intermine.load
             'js':
-                'B': { 'path': 'B', 'check': -> true }
+                'B': { 'path': 'B', 'test': -> true }
                 'A': { 'path': 'A', 'depends': [ 'B' ] }
         , (err) ->
             assert.ifError err
