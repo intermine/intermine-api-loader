@@ -405,7 +405,7 @@
         o[type][name] = {
           'path': path
         };
-        if (!!wait && i !== 0) {
+        if (!!wait && !!parseInt(i)) {
           o[type][name].depends = [library[i - 1].name];
         }
       }

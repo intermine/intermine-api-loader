@@ -169,7 +169,7 @@ intermine.load = (library, args...) ->
         for i, { name, path, type, wait } of library
             return cb 'Library `path` or `type` not provided' unless path or type
             return cb "Library type `#{type}` not recognized" if type not in [ 'css', 'js' ]
-            
+
             # Name is strictly not provided, so make one up from path if needed.
             name = path.split('/').pop() unless name
 
@@ -180,7 +180,7 @@ intermine.load = (library, args...) ->
             o[type][name] = 'path': path
 
             # Are we waiting for the previous one? Make it a dep.
-            if !!wait and i isnt 0 # stupid to wait when we are first
+            if !!wait and !!parseInt(i) # stupid to wait when we are first
                 o[type][name].depends = [ library[i - 1].name ] # we have checked the name of our predecessor already
 
         # Library is an object now.

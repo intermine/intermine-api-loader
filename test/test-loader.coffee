@@ -67,6 +67,17 @@ module.exports =
 
             done()
 
+    '#12': (done) ->
+        # Replace with our custom async-loader script.
+        intermine.loader = (path, type, cb) -> process.nextTick cb
+
+        intermine.load [
+            { 'name': 'A', 'path': 'A', 'type': 'js', 'wait': true }
+            { 'name': 'B', 'path': 'B', 'type': 'js' }
+        ], (err) ->
+            assert.ifError err
+            done()
+
     'Just plain weird input': (done) ->
         # Replace with our custom async-loader script.
         intermine.loader = (path, type, cb) ->
