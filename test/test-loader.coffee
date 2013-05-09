@@ -202,6 +202,26 @@ module.exports =
             delete global.globalls
             done()
 
+    'Traverse the nodes of an object on `window`': (done) ->
+        # Replace with our custom async-loader script.
+        intermine.loader = (path, type, cb) ->
+            assert.equal path, 'A'
+            process.nextTick cb
+
+        # Set an object on root.
+        global.globalls =
+            'one':
+                'two': {}
+
+        intermine.load
+            'js':
+                'globalls.one.two': { 'path': 'globalls' }
+                'A': { 'path': 'A' }
+        , (err) ->
+            assert.ifError err
+            delete global.globalls
+            done()
+
     'Do not load resources that pass a `test`': (done) ->
         # Replace with our custom async-loader script.
         intermine.loader = (path, type, cb) ->

@@ -48,6 +48,20 @@ loading = {}
 
 # A new auto-loader.
 load = (resources, type, cb) ->
+    # Is a resource on a `window`?
+    onWindow = (path) ->
+        # Where do we start?
+        loc = root.window
+        # Split on a dot.
+        for part in path.split('.')
+            # Exit if not found.
+            return false unless (loc[part]? and (typeof loc[part] is 'function' or 'object'))
+            # OK, traverse deeper then.
+            loc = loc[part]
+
+        # It must exist on `window`.
+        true
+
     # Have we exited already?
     exited = false
     exit = (err) ->
@@ -71,7 +85,7 @@ load = (resources, type, cb) ->
         # Do we have a sync function check?
         if !!(test and typeof(test) is 'function' and test()) or
             # Let us attempt a check on the `window` then.
-            (root.window[key]? and (typeof root.window[key] is 'function' or 'object'))
+            onWindow(key)
                 # Add an immediate callback to the object :).
                 return obj[key] = (cb) -> cb null
 

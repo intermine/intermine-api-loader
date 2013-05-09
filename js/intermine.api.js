@@ -252,8 +252,22 @@
   loading = {};
 
   load = function(resources, type, cb) {
-    var branch, err, exit, exited, key, obj, seen, value, _fn, _i, _len, _ref;
+    var branch, err, exit, exited, key, obj, onWindow, seen, value, _fn, _i, _len, _ref;
 
+    onWindow = function(path) {
+      var loc, part, _i, _len, _ref;
+
+      loc = root.window;
+      _ref = path.split('.');
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        part = _ref[_i];
+        if (!((loc[part] != null) && (typeof loc[part] === 'function' || 'object'))) {
+          return false;
+        }
+        loc = loc[part];
+      }
+      return true;
+    };
     exited = false;
     exit = function(err) {
       exited = true;
@@ -270,7 +284,7 @@
       if (!path) {
         return exit("Library `path` not provided for " + key);
       }
-      if (!!(test && typeof test === 'function' && test()) || ((root.window[key] != null) && (typeof root.window[key] === 'function' || 'object'))) {
+      if (!!(test && typeof test === 'function' && test()) || onWindow(key)) {
         return obj[key] = function(cb) {
           return cb(null);
         };
