@@ -50,6 +50,9 @@ loading = {}
 load = (resources, type, cb) ->
     # Is a resource on a `window`?
     onWindow = (path) ->
+        # Skip JSONP requests.
+        return false if ~path.indexOf '?'
+
         # Where do we start?
         loc = root.window
         # Split on a dot.

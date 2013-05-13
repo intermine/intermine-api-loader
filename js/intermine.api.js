@@ -257,6 +257,9 @@
     onWindow = function(path) {
       var loc, part, _i, _len, _ref;
 
+      if (~path.indexOf('?')) {
+        return false;
+      }
       loc = root.window;
       _ref = path.split('.');
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
