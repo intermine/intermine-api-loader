@@ -235,3 +235,36 @@ module.exports =
         , (err) ->
             assert.ifError err
             done()
+
+    'Skip waiting for processing cutoff time when `test` function provided': (done) ->
+        # Reset the log.
+        intermine.log = []
+
+        # Replace with our custom async-loader script.
+        intermine.loader = (path, type, cb) ->
+            process.nextTick cb
+
+        # Switch from false to true.
+        i = 0 ; nayYay = -> !!(i++)
+
+        intermine.load
+            'js':
+                'A':
+                    'path': 'A'
+                    'test': nayYay
+
+        , (err) ->
+            assert.ifError err
+
+            # Parse the log.
+            actual = []
+            for [ lib, stamp, obj ] in intermine.log
+                { library, message } = JSON.parse obj
+                actual.push message if library and library is 'A'
+
+            expected = [ 'start', 'will download', 'downloading', 'downloaded', 'exists', 'ready' ]
+
+            # Now we want to equal baby.
+            assert not (actual < expected or expected < actual)
+
+            done()

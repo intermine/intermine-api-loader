@@ -123,12 +123,15 @@ load = (resources, type, cb) ->
 
                 # Keep checking the `window` for when the lib shows up.
                 do isAvailable = ->
-                    # Available?
-                    if onWindow(key)
-                        # Remove the cutoff timeout.
-                        root.window.clearTimeout timeout
-                        # We say it is ready.
-                        isReady()
+                    # Do we have a sync function check?
+                    if !!(test and typeof(test) is 'function' and test()) or
+                        # Let us attempt a check on the `window` then.
+                        onWindow(key)
+                            log { 'job': job, 'library': key, 'message': 'exists' }
+                            # Remove the cutoff timeout.
+                            root.window.clearTimeout timeout
+                            # We say it is ready.
+                            isReady()
 
                     # Keep checking then.
                     else

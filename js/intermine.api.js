@@ -174,7 +174,12 @@
           };
           timeout = root.window.setTimeout(isReady, cutoff);
           return (isAvailable = function() {
-            if (onWindow(key)) {
+            if (!!(test && typeof test === 'function' && test()) || onWindow(key)) {
+              log({
+                'job': job,
+                'library': key,
+                'message': 'exists'
+              });
               root.window.clearTimeout(timeout);
               return isReady();
             } else {

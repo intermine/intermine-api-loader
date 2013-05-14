@@ -1,7 +1,7 @@
 {
     "name": "intermine-api-loader",
     "author": "Radek <rs676@cam.ac.uk>",
-    "version": "0.5.1",
+    "version": "0.5.2",
     "private": true,
     "devDependencies": {
         "coffee-script": "1.6.2",
