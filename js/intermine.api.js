@@ -1,5 +1,5 @@
 (function() {
-  var intermine, load, loading, paths, root, _auto, _contains, _each, _keys, _map, _reduce, _setImmediate,
+  var cutoff, document, head, intermine, jobs, load, loading, log, paths, root, _auto, _contains, _each, _get, _keys, _map, _reduce, _setImmediate,
     __slice = [].slice;
 
   paths = {
@@ -33,6 +33,330 @@
       "latest": "http://cdn.intermine.org/js/intermine/report-widgets/latest/intermine.report-widgets.js",
       "0.7.0": "http://cdn.intermine.org/js/intermine/report-widgets/0.7.0/intermine.report-widgets.js"
     }
+  };
+
+  root = this;
+
+  root.intermine = intermine = root.intermine || {};
+
+  if (typeof root.window === 'undefined') {
+    if (typeof global === 'undefined') {
+      throw 'what kind of environment is this?';
+    }
+    root.window = global;
+  }
+
+  if (intermine.load) {
+    return;
+  }
+
+  intermine.loader = function(path, type, cb) {
+    if (type == null) {
+      type = 'js';
+    }
+    switch (type) {
+      case 'js':
+        return _get.script(path, cb);
+      case 'css':
+        return _get.style(path, cb);
+      default:
+        return cb("Unrecognized type `" + type + "`");
+    }
+  };
+
+  cutoff = 50;
+
+  loading = {};
+
+  jobs = 0;
+
+  load = function(resources, type, cb) {
+    var branch, err, exit, exited, job, key, obj, onWindow, seen, value, _fn, _i, _len, _ref;
+
+    job = ++jobs;
+    log({
+      'job': job,
+      'message': 'start'
+    });
+    onWindow = function(path) {
+      var loc, part, _i, _len, _ref;
+
+      if (~path.indexOf('?')) {
+        return false;
+      }
+      loc = root.window;
+      _ref = path.split('.');
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        part = _ref[_i];
+        if (!((loc[part] != null) && (typeof loc[part] === 'function' || 'object'))) {
+          return false;
+        }
+        loc = loc[part];
+      }
+      return true;
+    };
+    exited = false;
+    exit = function(err) {
+      exited = true;
+      return cb(err);
+    };
+    obj = {};
+    _fn = function(key, value) {
+      var dep, depends, path, test, _i, _len;
+
+      log({
+        'job': job,
+        'library': key,
+        'message': 'start'
+      });
+      if (exited) {
+        return;
+      }
+      path = value.path, test = value.test, depends = value.depends;
+      if (!path) {
+        return exit("Library `path` not provided for " + key);
+      }
+      if (!!(test && typeof test === 'function' && test()) || onWindow(key)) {
+        log({
+          'job': job,
+          'library': key,
+          'message': 'exists'
+        });
+        return obj[key] = function(cb) {
+          return cb(null);
+        };
+      }
+      if (loading[key]) {
+        log({
+          'job': job,
+          'library': key,
+          'message': 'will wait'
+        });
+        return obj[key] = function(cb) {
+          var isDone;
+
+          return (isDone = function() {
+            if (!loading[key]) {
+              return _setImmediate(isDone);
+            } else {
+              log({
+                'job': job,
+                'library': key,
+                'message': 'wait over'
+              });
+              return cb(null);
+            }
+          })();
+        };
+      }
+      loading[key] = true;
+      log({
+        'job': job,
+        'library': key,
+        'message': 'will download'
+      });
+      obj[key] = function(cb) {
+        log({
+          'job': job,
+          'library': key,
+          'message': 'downloading'
+        });
+        return intermine.loader(path, type, function(err) {
+          var isAvailable, isReady, timeout;
+
+          if (err) {
+            delete loading[key];
+            return exit(err);
+          }
+          log({
+            'job': job,
+            'library': key,
+            'message': 'downloaded'
+          });
+          isReady = function() {
+            log({
+              'job': job,
+              'library': key,
+              'message': 'ready'
+            });
+            delete loading[key];
+            return cb(null);
+          };
+          timeout = root.window.setTimeout(isReady, cutoff);
+          return (isAvailable = function() {
+            if (onWindow(key)) {
+              root.window.clearTimeout(timeout);
+              return isReady();
+            } else {
+              return _setImmediate(isAvailable);
+            }
+          })();
+        });
+      };
+      if (depends && depends instanceof Array) {
+        for (_i = 0, _len = depends.length; _i < _len; _i++) {
+          dep = depends[_i];
+          if (!(typeof dep !== 'string' || (resources[dep] == null))) {
+            continue;
+          }
+          delete loading[key];
+          return exit("Unrecognized dependency `" + dep + "`");
+        }
+        return obj[key] = depends.concat(obj[key]);
+      }
+    };
+    for (key in resources) {
+      value = resources[key];
+      _fn(key, value);
+    }
+    if (exited) {
+      return;
+    }
+    err = [];
+    for (key in obj) {
+      value = obj[key];
+      if (!(value instanceof Array)) {
+        continue;
+      }
+      seen = {};
+      (branch = function(key) {
+        var i, val, _i, _ref, _results;
+
+        if (typeof key !== 'string') {
+          return;
+        }
+        if (seen[key] != null) {
+          if (!_contains(err, key)) {
+            return err.push(key);
+          }
+        } else {
+          seen[key] = true;
+          if ((val = obj[key]) instanceof Array) {
+            _results = [];
+            for (i = _i = 0, _ref = val.length - 1; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
+              _results.push(branch(val[i]));
+            }
+            return _results;
+          }
+        }
+      })(key);
+    }
+    if (!!err.length) {
+      _ref = _keys(obj);
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        key = _ref[_i];
+        delete loading[key];
+      }
+      return exit("Circular dependencies detected for `" + err + "`");
+    }
+    return _auto(obj, function(err) {
+      if (err) {
+        return cb(err);
+      } else {
+        return cb(null);
+      }
+    });
+  };
+
+  intermine.load = function() {
+    var args, cb, exited, handle, i, key, library, name, o, path, resources, type, version, wait, _ref;
+
+    library = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
+    cb = arguments.length === 1 ? library : args.pop();
+    version = 'latest';
+    if (typeof args[0] === 'string') {
+      version = args[0];
+    }
+    if (typeof cb !== 'function') {
+      cb = function() {};
+    }
+    if (typeof library === 'string') {
+      if (!paths[library]) {
+        return cb("Unknown library `" + library + "`");
+      }
+      if (!(path = paths[library][version])) {
+        return cb("Unknown `" + library + "` version " + version);
+      }
+      o = {};
+      o["intermine." + library] = {
+        'path': path
+      };
+      return load(o, 'js', cb);
+    }
+    if (library instanceof Array) {
+      o = {
+        'js': {},
+        'css': {}
+      };
+      for (i in library) {
+        _ref = library[i], name = _ref.name, path = _ref.path, type = _ref.type, wait = _ref.wait;
+        if (!(path || type)) {
+          return cb('Library `path` or `type` not provided');
+        }
+        if (type !== 'css' && type !== 'js') {
+          return cb("Library type `" + type + "` not recognized");
+        }
+        if (!name) {
+          name = path.split('/').pop();
+        }
+        library[i].name = name;
+        o[type][name] = {
+          'path': path
+        };
+        if (!!wait && !!parseInt(i)) {
+          o[type][name].depends = [library[i - 1].name];
+        }
+      }
+      library = o;
+    }
+    if (typeof library === 'object') {
+      i = _keys(library).length;
+      exited = false;
+      handle = function(err) {
+        if (exited) {
+          return;
+        }
+        if (err) {
+          exited = true;
+          return cb(err);
+        }
+        if (i-- && !!!i) {
+          return cb(null);
+        }
+      };
+      return (function() {
+        var _results;
+
+        _results = [];
+        for (key in library) {
+          resources = library[key];
+          _results.push(load(resources, key, handle));
+        }
+        return _results;
+      })();
+    }
+    return cb('Unrecognized input');
+  };
+
+  if (!(intermine.log && intermine.log instanceof Array)) {
+    intermine.log = [];
+  }
+
+  log = function() {
+    var arg;
+
+    return intermine.log.push([
+      'api-loader', (new Date).toLocaleString(), ((function() {
+        var _i, _len, _results;
+
+        _results = [];
+        for (_i = 0, _len = arguments.length; _i < _len; _i++) {
+          arg = arguments[_i];
+          _results.push(JSON.stringify(arg));
+        }
+        return _results;
+      }).apply(this, arguments)).join(' ')
+    ]);
   };
 
   if (typeof process === 'undefined' || !process.nextTick) {
@@ -197,264 +521,52 @@
     });
   };
 
-  root = this;
+  document = root.window.document;
 
-  root.intermine = intermine = root.intermine || {};
-
-  if (typeof root.window === 'undefined') {
-    if (typeof global === 'undefined') {
-      throw 'what kind of environment is this?';
-    }
-    root.window = global;
+  if (document) {
+    head = document.head || document.getElementsByTagName('head')[0];
   }
 
-  if (intermine.load) {
-    return;
-  }
+  _get = {
+    'script': function(url, cb) {
+      var done, loaded, script;
 
-  intermine.loader = function(path, type, cb) {
-    var script, setCallback, sheet;
-
-    if (type == null) {
-      type = 'js';
-    }
-    setCallback = function(tag, cb) {
-      tag.onload = cb;
-      return tag.onreadystatechange = function() {
+      if (!head) {
+        return cb('`window.document` does not exist');
+      }
+      done = function() {
+        script.onload = script.onreadystatechange = script.onerror = null;
+        head.removeChild(script);
+        return cb && cb.call(root.window, (loaded ? null : '`script.onerror` fired'));
+      };
+      script = document.createElement('script');
+      loaded = false;
+      script.type = 'text/javascript';
+      script.charset = 'utf-8';
+      script.onload = script.onreadystatechange = function() {
         var state;
 
-        state = tag.readyState;
-        if (state === 'complete' || state === 'loaded') {
-          tag.onreadystatechange = null;
-          return _setImmediate(cb);
+        state = this.readyState;
+        if (!loaded && (!state || state === 'complete' || state === 'loaded')) {
+          loaded = true;
+          return _setImmediate(done);
         }
       };
-    };
-    switch (type) {
-      case 'js':
-        script = document.createElement('script');
-        script.src = path;
-        script.type = 'text/javascript';
-        setCallback(script, cb);
-        return document.getElementsByTagName('head')[0].appendChild(script);
-      case 'css':
-        sheet = document.createElement('link');
-        sheet.rel = 'stylesheet';
-        sheet.type = 'text/css';
-        sheet.href = path;
-        document.getElementsByTagName('head')[0].appendChild(sheet);
-        return cb(null);
-      default:
-        return cb("Unrecognized type `" + type + "`");
-    }
-  };
+      script.onerror = done;
+      script.async = true;
+      script.src = url;
+      return head.appendChild(script);
+    },
+    'style': function(url, cb) {
+      var style;
 
-  loading = {};
-
-  load = function(resources, type, cb) {
-    var branch, err, exit, exited, key, obj, onWindow, seen, value, _fn, _i, _len, _ref;
-
-    onWindow = function(path) {
-      var loc, part, _i, _len, _ref;
-
-      if (~path.indexOf('?')) {
-        return false;
-      }
-      loc = root.window;
-      _ref = path.split('.');
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        part = _ref[_i];
-        if (!((loc[part] != null) && (typeof loc[part] === 'function' || 'object'))) {
-          return false;
-        }
-        loc = loc[part];
-      }
-      return true;
-    };
-    exited = false;
-    exit = function(err) {
-      exited = true;
-      return cb(err);
-    };
-    obj = {};
-    _fn = function(key, value) {
-      var dep, depends, path, test, _i, _len;
-
-      if (exited) {
-        return;
-      }
-      path = value.path, test = value.test, depends = value.depends;
-      if (!path) {
-        return exit("Library `path` not provided for " + key);
-      }
-      if (!!(test && typeof test === 'function' && test()) || onWindow(key)) {
-        return obj[key] = function(cb) {
-          return cb(null);
-        };
-      }
-      if (loading[key]) {
-        return obj[key] = function(cb) {
-          var isDone;
-
-          return (isDone = function() {
-            if (!loading[key]) {
-              return _setImmediate(isDone);
-            } else {
-              return cb(null);
-            }
-          })();
-        };
-      }
-      loading[key] = true;
-      obj[key] = function(cb) {
-        return intermine.loader(path, type, function() {
-          delete loading[key];
-          return cb(null);
-        });
-      };
-      if (depends && depends instanceof Array) {
-        for (_i = 0, _len = depends.length; _i < _len; _i++) {
-          dep = depends[_i];
-          if (!(typeof dep !== 'string' || (resources[dep] == null))) {
-            continue;
-          }
-          delete loading[key];
-          return exit("Unrecognized dependency `" + dep + "`");
-        }
-        return obj[key] = depends.concat(obj[key]);
-      }
-    };
-    for (key in resources) {
-      value = resources[key];
-      _fn(key, value);
+      style = document.createElement('link');
+      style.rel = 'stylesheet';
+      style.type = 'text/css';
+      style.href = url;
+      head.appendChild(style);
+      return _setImmediate(cb);
     }
-    if (exited) {
-      return;
-    }
-    err = [];
-    for (key in obj) {
-      value = obj[key];
-      if (!(value instanceof Array)) {
-        continue;
-      }
-      seen = {};
-      (branch = function(key) {
-        var i, val, _i, _ref, _results;
-
-        if (typeof key !== 'string') {
-          return;
-        }
-        if (seen[key] != null) {
-          if (!_contains(err, key)) {
-            return err.push(key);
-          }
-        } else {
-          seen[key] = true;
-          if ((val = obj[key]) instanceof Array) {
-            _results = [];
-            for (i = _i = 0, _ref = val.length - 1; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
-              _results.push(branch(val[i]));
-            }
-            return _results;
-          }
-        }
-      })(key);
-    }
-    if (!!err.length) {
-      _ref = _keys(obj);
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        key = _ref[_i];
-        delete loading[key];
-      }
-      return exit("Circular dependencies detected for `" + err + "`");
-    }
-    return _auto(obj, function(err) {
-      if (err) {
-        return cb(err);
-      } else {
-        return cb(null);
-      }
-    });
-  };
-
-  intermine.load = function() {
-    var args, cb, exited, handle, i, key, library, name, o, path, resources, type, version, wait, _ref;
-
-    library = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
-    cb = arguments.length === 1 ? library : args.pop();
-    version = 'latest';
-    if (typeof args[0] === 'string') {
-      version = args[0];
-    }
-    if (typeof cb !== 'function') {
-      cb = function() {};
-    }
-    if (typeof library === 'string') {
-      if (!paths[library]) {
-        return cb("Unknown library `" + library + "`");
-      }
-      if (!(path = paths[library][version])) {
-        return cb("Unknown `" + library + "` version " + version);
-      }
-      o = {};
-      o["intermine." + library] = {
-        'path': path
-      };
-      return load(o, 'js', cb);
-    }
-    if (library instanceof Array) {
-      o = {
-        'js': {},
-        'css': {}
-      };
-      for (i in library) {
-        _ref = library[i], name = _ref.name, path = _ref.path, type = _ref.type, wait = _ref.wait;
-        if (!(path || type)) {
-          return cb('Library `path` or `type` not provided');
-        }
-        if (type !== 'css' && type !== 'js') {
-          return cb("Library type `" + type + "` not recognized");
-        }
-        if (!name) {
-          name = path.split('/').pop();
-        }
-        library[i].name = name;
-        o[type][name] = {
-          'path': path
-        };
-        if (!!wait && !!parseInt(i)) {
-          o[type][name].depends = [library[i - 1].name];
-        }
-      }
-      library = o;
-    }
-    if (typeof library === 'object') {
-      i = _keys(library).length;
-      exited = false;
-      handle = function(err) {
-        if (exited) {
-          return;
-        }
-        if (err) {
-          exited = true;
-          return cb(err);
-        }
-        if (i-- && !!!i) {
-          return cb(null);
-        }
-      };
-      return (function() {
-        var _results;
-
-        _results = [];
-        for (key in library) {
-          resources = library[key];
-          _results.push(load(resources, key, handle));
-        }
-        return _results;
-      })();
-    }
-    return cb('Unrecognized input');
   };
 
 }).call(this);

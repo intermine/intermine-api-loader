@@ -106,3 +106,62 @@ _auto = (tasks, callback) ->
                     task[task.length - 1] taskCallback, results
 
             addListener listener
+
+# Document & head refs.
+document = root.window.document
+head = document.head or document.getElementsByTagName('head')[0] if document
+
+# Resource loader.
+_get =
+    # Fetch a JavaScript file.
+    'script': (url, cb) ->
+        return cb '`window.document` does not exist' unless head
+
+        done = ->
+            # Clean up circular references to prevent memory leaks in IE
+            script.onload = script.onreadystatechange = script.onerror = null
+          
+            # Remove script element once loaded
+            head.removeChild script
+            cb and cb.call root.window, (if loaded then null else '`script.onerror` fired')
+
+        script = document.createElement 'script'
+        loaded = false
+
+        # Default type.
+        script.type = 'text/javascript'
+        # Some libs like d3 need this.
+        script.charset = 'utf-8'
+
+        # Are we done?
+        script.onload = script.onreadystatechange = ->
+            state = @readyState
+            if not loaded and (not state or state is 'complete' or state is 'loaded')
+                loaded = true
+                # Give us a breather.
+                _setImmediate done
+
+        # Not working in IE...
+        script.onerror = done
+
+        # Extra hint for good browsers.
+        script.async = true
+
+        script.src = url
+
+        # Launch.
+        head.appendChild script
+
+    # Fetch a CSS stylesheet.
+    'style': (url, cb) ->
+        style = document.createElement 'link'
+
+        style.rel = 'stylesheet'
+        style.type = 'text/css'
+        style.href = url
+
+        # Launch.
+        head.appendChild style
+
+        # Immediate yet async callback.
+        _setImmediate cb

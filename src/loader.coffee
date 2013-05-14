@@ -13,41 +13,27 @@ if typeof root.window is 'undefined'
 return if intermine.load
 
 # Export the loader so we can override when testing.
-intermine.loader = (path, type='js', cb) ->
-    # Give us a call when you are done.
-    setCallback = (tag, cb) ->
-        tag.onload = cb
-        tag.onreadystatechange = ->
-            state = tag.readyState
-            if state is 'complete' or state is 'loaded'
-                tag.onreadystatechange = null
-                _setImmediate cb
-    
+intermine.loader = (path, type='js', cb) ->    
     switch type
-        when 'js'
-            script = document.createElement 'script'
-            script.src = path
-            script.type = 'text/javascript'
-            setCallback(script, cb)
-            document.getElementsByTagName('head')[0].appendChild(script)
+        when 'js' then _get.script path, cb
+        when 'css' then _get.style path, cb
+        else cb "Unrecognized type `#{type}`"
 
-        when 'css'
-            sheet = document.createElement 'link'
-            sheet.rel = 'stylesheet'
-            sheet.type = 'text/css'
-            sheet.href = path
-            document.getElementsByTagName('head')[0].appendChild(sheet)
-            # Immediate callback, do not wait for anything.
-            cb null
-
-        else
-            cb "Unrecognized type `#{type}`"
+# When waiting for a library to get processed, this is the cutoff time.
+cutoff = 50
 
 # Dependencies that are being loaded are put here.
 loading = {}
 
+# Jobs executed.
+jobs = 0
+
 # A new auto-loader.
 load = (resources, type, cb) ->
+    job = ++jobs
+
+    log  { 'job': job, 'message': 'start' }
+
     # Is a resource on a `window`?
     onWindow = (path) ->
         # Skip JSONP requests.
@@ -76,6 +62,8 @@ load = (resources, type, cb) ->
 
     # Check & format the resources.
     for key, value of resources then do (key, value) ->
+        log { 'job': job, 'library': key, 'message': 'start' }
+
         # Skip if an error has happened.
         return if exited
 
@@ -89,11 +77,13 @@ load = (resources, type, cb) ->
         if !!(test and typeof(test) is 'function' and test()) or
             # Let us attempt a check on the `window` then.
             onWindow(key)
+                log { 'job': job, 'library': key, 'message': 'exists' }
                 # Add an immediate callback to the object :).
                 return obj[key] = (cb) -> cb null
 
         # Maybe this library is being loaded right now elsewhere on the page?
         if loading[key]
+            log { 'job': job, 'library': key, 'message': 'will wait' }
             # OK, be called when it is done.
             return obj[key] = (cb) ->
                 # Wait for the library to be loaded.
@@ -101,16 +91,47 @@ load = (resources, type, cb) ->
                     unless loading[key]
                         _setImmediate isDone # works in node & browser
                     else
+                        log { 'job': job, 'library': key, 'message': 'wait over' }
                         cb null # finally the dependency got loaded
 
         # This dep is registered for loading.
-        loading[key] = true
+        loading[key] = yes
 
         # Straight up fetch.
+        log { 'job': job, 'library': key, 'message': 'will download' }
         obj[key] = (cb) ->
-            intermine.loader path, type, ->
-                delete loading[key] # has loaded...
-                cb null
+            log { 'job': job, 'library': key, 'message': 'downloading' }
+            
+            # Launch the loader.
+            intermine.loader path, type, (err) ->
+                if err
+                    delete loading[key]
+                    return exit err
+
+                # OK all good.
+                log { 'job': job, 'library': key, 'message': 'downloaded' }
+
+                # Call this when the library is ready to use.
+                isReady = ->
+                    log { 'job': job, 'library': key, 'message': 'ready' }
+                    delete loading[key] # has loaded...
+                    cb null
+
+                # Now we need to allow for processing time.
+                timeout = root.window.setTimeout isReady, cutoff
+
+                # Keep checking the `window` for when the lib shows up.
+                do isAvailable = ->
+                    # Available?
+                    if onWindow(key)
+                        # Remove the cutoff timeout.
+                        root.window.clearTimeout timeout
+                        # We say it is ready.
+                        isReady()
+
+                    # Keep checking then.
+                    else
+                        _setImmediate isAvailable
 
         # Do we have dependencies?
         if depends and depends instanceof Array
@@ -224,3 +245,7 @@ intermine.load = (library, args...) ->
         return ( load resources, key, handle for key, resources of library )
 
     cb 'Unrecognized input'
+
+# Logger.
+intermine.log = [] unless (intermine.log and intermine.log instanceof Array)
+log = -> intermine.log.push [ 'api-loader', (new Date).toLocaleString(), (JSON.stringify(arg) for arg in arguments).join(' ') ]

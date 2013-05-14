@@ -33,7 +33,7 @@ async.waterfall [ (cb) ->
 
         # Swap?
         [ a, b ] = results
-        ( a[0] is './src/loader.coffee' and [ b, a ] = [ a, b ] )
+        ( a[0] is './src/loader.deps.coffee' and [ b, a ] = [ a, b ] )
 
         # Add paths and join.
         merged = [ 'paths = ' + paths, a[1], b[1] ].join('\n')
