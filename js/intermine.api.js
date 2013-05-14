@@ -133,23 +133,10 @@
           'message': 'will wait'
         });
         return obj[key] = function(cb) {
-          var isDone;
-
-          return (isDone = function() {
-            if (!loading[key]) {
-              return _setImmediate(isDone);
-            } else {
-              log({
-                'job': job,
-                'library': key,
-                'message': 'wait over'
-              });
-              return cb(null);
-            }
-          })();
+          return loading[key].push(cb);
         };
       }
-      loading[key] = true;
+      loading[key] = [];
       log({
         'job': job,
         'library': key,
@@ -179,6 +166,9 @@
               'library': key,
               'message': 'ready'
             });
+            while (loading[key].length !== 0) {
+              loading[key].pop()();
+            }
             delete loading[key];
             return cb(null);
           };

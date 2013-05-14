@@ -84,18 +84,12 @@ load = (resources, type, cb) ->
         # Maybe this library is being loaded right now elsewhere on the page?
         if loading[key]
             log { 'job': job, 'library': key, 'message': 'will wait' }
-            # OK, be called when it is done.
+            # OK, register ourselves to be told when ready.
             return obj[key] = (cb) ->
-                # Wait for the library to be loaded.
-                do isDone = ->
-                    unless loading[key]
-                        _setImmediate isDone # works in node & browser
-                    else
-                        log { 'job': job, 'library': key, 'message': 'wait over' }
-                        cb null # finally the dependency got loaded
+                loading[key].push cb
 
-        # This dep is registered for loading.
-        loading[key] = yes
+        # Create an Array for callbacks if someone is interested in us.
+        loading[key] = []
 
         # Straight up fetch.
         log { 'job': job, 'library': key, 'message': 'will download' }
@@ -105,7 +99,7 @@ load = (resources, type, cb) ->
             # Launch the loader.
             intermine.loader path, type, (err) ->
                 if err
-                    delete loading[key]
+                    delete loading[key] # no callbacks for you!
                     return exit err
 
                 # OK all good.
@@ -114,7 +108,14 @@ load = (resources, type, cb) ->
                 # Call this when the library is ready to use.
                 isReady = ->
                     log { 'job': job, 'library': key, 'message': 'ready' }
-                    delete loading[key] # has loaded...
+
+                    # Execute all of out callbacks if any.
+                    while loading[key].length isnt 0
+                        do loading[key].pop()
+
+                    # OK, no more calling others..
+                    delete loading[key]
+
                     cb null
 
                 # Now we need to allow for processing time.
