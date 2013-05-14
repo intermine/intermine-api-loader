@@ -538,19 +538,22 @@
       loaded = false;
       script.type = 'text/javascript';
       script.charset = 'utf-8';
-      script.onload = script.onreadystatechange = function() {
-        var state;
-
-        state = this.readyState;
-        if (!loaded && (!state || state === 'complete' || state === 'loaded')) {
+      script.async = true;
+      script.src = url;
+      script.onload = script.onreadystatechange = function(event) {
+        event = event || root.window.event;
+        if (event.type === 'load' || (/loaded|complete/.test(script.readyState) && (!document.documentMode || document.documentMode < 9))) {
           loaded = true;
+          script.onload = script.onreadystatechange = script.onerror = null;
           return _setImmediate(done);
         }
       };
-      script.onerror = done;
-      script.async = true;
-      script.src = url;
-      return head.appendChild(script);
+      script.onerror = function(event) {
+        event = event || root.window.event;
+        script.onload = script.onreadystatechange = script.onerror = null;
+        return _setImmediate(done);
+      };
+      return head.insertBefore(script, head.lastChild);
     },
     'style': function(url, cb) {
       var style;
@@ -559,7 +562,7 @@
       style.rel = 'stylesheet';
       style.type = 'text/css';
       style.href = url;
-      head.appendChild(style);
+      head.insertBefore(style, head.lastChild);
       return _setImmediate(cb);
     }
   };

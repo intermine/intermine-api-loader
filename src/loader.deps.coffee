@@ -132,25 +132,32 @@ _get =
         script.type = 'text/javascript'
         # Some libs like d3 need this.
         script.charset = 'utf-8'
-
-        # Are we done?
-        script.onload = script.onreadystatechange = ->
-            state = @readyState
-            if not loaded and (not state or state is 'complete' or state is 'loaded')
-                loaded = true
-                # Give us a breather.
-                _setImmediate done
-
-        # Not working in IE...
-        script.onerror = done
-
         # Extra hint for good browsers.
         script.async = true
-
+        # The URL path.
         script.src = url
 
+        # Handle events...
+        script.onload = script.onreadystatechange = (event) ->
+            event = event or root.window.event
+
+            if event.type is 'load' or (/loaded|complete/.test(script.readyState) and (not document.documentMode or document.documentMode < 9))
+                # All good.
+                loaded = true
+                # Release event listeners.
+                script.onload = script.onreadystatechange = script.onerror = null
+                # Do callback.
+                _setImmediate done
+
+        script.onerror = (event) ->
+            event = event or root.window.event
+            # Release event listeners.
+            script.onload = script.onreadystatechange = script.onerror = null
+            # Do callback.
+            _setImmediate done
+
         # Launch.
-        head.appendChild script
+        head.insertBefore script, head.lastChild
 
     # Fetch a CSS stylesheet.
     'style': (url, cb) ->
@@ -161,7 +168,7 @@ _get =
         style.href = url
 
         # Launch.
-        head.appendChild style
+        head.insertBefore style, head.lastChild
 
         # Immediate yet async callback.
         _setImmediate cb
