@@ -12,15 +12,18 @@ if typeof root.window is 'undefined'
 # Only allow one instance.
 return if intermine.load
 
-# Export the loader so we can override when testing.
-intermine.loader = (path, type='js', cb) ->    
-    switch type
-        when 'js' then _get.script path, cb
-        when 'css' then _get.style path, cb
-        else cb "Unrecognized type `#{type}`"
-
-# When waiting for a library to get processed, this is the cutoff time.
-cutoff = 50
+# Overridable config.
+intermine.loader =
+    # Quit with error callback if we do not get a file in this much time (in ms).
+    'timeout': 1e4
+    # When waiting for a library to get processed, this is the cutoff time (in ms).
+    'processing': 50
+    # The function launching the (one) file loading.
+    'fn': (path, type='js', cb) ->
+        switch type
+            when 'js' then _get.script path, cb
+            when 'css' then _get.style path, cb
+            else cb "Unrecognized type `#{type}`"
 
 # Dependencies that are being loaded are put here.
 loading = {}
@@ -96,8 +99,17 @@ load = (resources, type, cb) ->
         obj[key] = (cb) ->
             log { 'job': job, 'library': key, 'message': 'downloading' }
             
-            # Launch the loader.
-            intermine.loader path, type, (err) ->
+            # Give the loader this amount of time to download the lib.
+            timeout = root.window.setTimeout ->
+                log { 'job': job, 'library': key, 'message': 'timed out' }
+                postCall "The library `#{key}` has timed out"
+            , intermine.loader.timeout
+
+            postCall = (err) ->
+                return if exited
+                # Clear the timeout.
+                clearTimeout timeout
+
                 if err
                     delete loading[key] # no callbacks for you!
                     return exit err
@@ -119,7 +131,7 @@ load = (resources, type, cb) ->
                     cb null
 
                 # Now we need to allow for processing time.
-                timeout = root.window.setTimeout isReady, cutoff
+                timeout = root.window.setTimeout isReady, intermine.loader.processing
 
                 # Keep checking the `window` for when the lib shows up.
                 do isAvailable = ->
@@ -136,6 +148,9 @@ load = (resources, type, cb) ->
                     # Keep checking then.
                     else
                         _setImmediate isAvailable
+
+            # Launch the loader.
+            intermine.loader.fn path, type, postCall
 
         # Do we have dependencies?
         if depends and depends instanceof Array

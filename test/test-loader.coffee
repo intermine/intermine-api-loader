@@ -6,7 +6,7 @@ async         = require 'async'
 module.exports =  
     'Named resource loading (deprecated)': (done) ->
         # Replace with our custom async-loader script.
-        intermine.loader = (path, type, cb) ->
+        intermine.loader.fn = (path, type, cb) ->
             assert.equal path, 'http://cdn.intermine.org/js/intermine/widgets/1.0.0/intermine.widgets.js'
             assert.equal type, 'js'
             process.nextTick cb
@@ -17,7 +17,7 @@ module.exports =
 
     'Named resource loading wo/ version (deprecated)': (done) ->
         # Replace with our custom async-loader script.
-        intermine.loader = (path, type, cb) ->
+        intermine.loader.fn = (path, type, cb) ->
             assert.equal path, 'http://cdn.intermine.org/js/intermine/widgets/latest/intermine.widgets.js'
             assert.equal type, 'js'
             process.nextTick cb
@@ -28,7 +28,7 @@ module.exports =
 
     'Non existent named resource loading (deprecated)': (done) ->
         # Replace with our custom async-loader script.
-        intermine.loader = (path, type, cb) ->
+        intermine.loader.fn = (path, type, cb) ->
             console.log path, type
             process.nextTick cb
 
@@ -40,7 +40,7 @@ module.exports =
         order = []
 
         # Replace with our custom async-loader script.
-        intermine.loader = (path, type, cb) ->
+        intermine.loader.fn = (path, type, cb) ->
             order.push path
             process.nextTick cb
 
@@ -69,7 +69,7 @@ module.exports =
 
     '#12': (done) ->
         # Replace with our custom async-loader script.
-        intermine.loader = (path, type, cb) -> process.nextTick cb
+        intermine.loader.fn = (path, type, cb) -> process.nextTick cb
 
         intermine.load [
             { 'name': 'A', 'path': 'A', 'type': 'js', 'wait': true }
@@ -80,7 +80,7 @@ module.exports =
 
     'Just plain weird input': (done) ->
         # Replace with our custom async-loader script.
-        intermine.loader = (path, type, cb) ->
+        intermine.loader.fn = (path, type, cb) ->
             assert false, 'should have skipped'
             process.nextTick cb
 
@@ -91,7 +91,7 @@ module.exports =
     'Same resource in parallel': (done) ->
         i = 0
         # Replace with our custom async-loader script.
-        intermine.loader = (path, type, cb) ->
+        intermine.loader.fn = (path, type, cb) ->
             i++
             process.nextTick cb
 
@@ -109,7 +109,7 @@ module.exports =
         order = []
 
         # Replace with our custom async-loader script.
-        intermine.loader = (path, type, cb) ->
+        intermine.loader.fn = (path, type, cb) ->
             order.push path
             process.nextTick cb
 
@@ -134,7 +134,7 @@ module.exports =
 
     'Depending on a non-existent entry': (done) ->
         # Replace with our custom async-loader script.
-        intermine.loader = (path, type, cb) ->
+        intermine.loader.fn = (path, type, cb) ->
             assert false, 'should have skipped'
             process.nextTick cb
 
@@ -148,7 +148,7 @@ module.exports =
 
     'Depending on a non-string entry': (done) ->
         # Replace with our custom async-loader script.
-        intermine.loader = (path, type, cb) ->
+        intermine.loader.fn = (path, type, cb) ->
             assert false, 'should have skipped'
             process.nextTick cb
 
@@ -162,7 +162,7 @@ module.exports =
 
     'A circular dependency hell': (done) ->
         # Replace with our custom async-loader script.
-        intermine.loader = (path, type, cb) ->
+        intermine.loader.fn = (path, type, cb) ->
             assert false, 'should have skipped'
             process.nextTick cb
 
@@ -186,7 +186,7 @@ module.exports =
 
     'Do not load resources on the `window`': (done) ->
         # Replace with our custom async-loader script.
-        intermine.loader = (path, type, cb) ->
+        intermine.loader.fn = (path, type, cb) ->
             assert.equal path, 'A'
             process.nextTick cb
 
@@ -204,7 +204,7 @@ module.exports =
 
     'Traverse the nodes of an object on `window`': (done) ->
         # Replace with our custom async-loader script.
-        intermine.loader = (path, type, cb) ->
+        intermine.loader.fn = (path, type, cb) ->
             assert.equal path, 'A'
             process.nextTick cb
 
@@ -224,7 +224,7 @@ module.exports =
 
     'Do not load resources that pass a `test`': (done) ->
         # Replace with our custom async-loader script.
-        intermine.loader = (path, type, cb) ->
+        intermine.loader.fn = (path, type, cb) ->
             assert.equal path, 'A'
             process.nextTick cb
 
@@ -241,7 +241,7 @@ module.exports =
         intermine.log = []
 
         # Replace with our custom async-loader script.
-        intermine.loader = (path, type, cb) ->
+        intermine.loader.fn = (path, type, cb) ->
             process.nextTick cb
 
         # Switch from false to true.
@@ -267,4 +267,19 @@ module.exports =
             # Now we want to equal baby.
             assert not (actual < expected or expected < actual)
 
+            done()
+
+    'Timeout loading a lib': (done) ->
+        # It will take us 200ms.
+        intermine.loader.fn = (path, type, cb) ->
+            setTimeout cb, 2e2
+
+        # But we give you 100ms.
+        intermine.loader.timeout = 1e2
+
+        intermine.load
+            'js':
+                'A': { 'path': 'A' }
+        , (err) ->
+            assert.equal err, 'The library `A` has timed out'
             done()
